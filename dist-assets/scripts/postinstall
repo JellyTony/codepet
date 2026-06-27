@@ -1,0 +1,8 @@
+#!/bin/bash
+# Launch CodePet as the logged-in user once installed — its first launch wires
+# the Claude Code hooks itself. (Runs as root during install, so open as the user.)
+CONSOLE_USER=$(stat -f%Su /dev/console 2>/dev/null)
+if [ -n "$CONSOLE_USER" ] && [ "$CONSOLE_USER" != "root" ]; then
+  launchctl asuser "$(id -u "$CONSOLE_USER")" open "/Applications/CodePet.app" 2>/dev/null || true
+fi
+exit 0

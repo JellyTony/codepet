@@ -122,10 +122,10 @@ state is fully animated out of the box.
 
 ### Download (no build needed)
 
-Grab `CodePet-macos.zip` from the [latest release](https://github.com/JellyTony/codepet/releases/latest),
-unzip, and double-click **`Install CodePet.command`** (if macOS blocks it,
-right-click → Open → Open). It copies CodePet to `/Applications`, clears the
-download quarantine, wires the Claude Code hooks, and launches the pet.
+Download **`CodePet.pkg`** from the [latest release](https://github.com/JellyTony/codepet/releases/latest)
+and double-click it (if macOS blocks the unsigned installer, right-click →
+Open → Open). The installer puts CodePet in `/Applications` and launches it; on
+first launch the app wires the Claude Code hooks itself.
 Requires macOS 13+ and [Node.js](https://nodejs.org) for the hooks.
 
 ### Build from source

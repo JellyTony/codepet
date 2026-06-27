@@ -56,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         setupMenuBar()
         loadPetdexFeatured()   // populate the in-menu Petdex installer
+        ensureHooksWired()     // self-install Claude Code hooks on first launch (.pkg flow)
 
         // Keep the badge + card stack in sync as sessions change.
         store.$sessions
@@ -177,6 +178,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.toolTip = nil
         let n = store.attentionCount
         statusItem.button?.title = n > 0 ? "🐾\(n)" : "🐾"
+    }
+
+    /// When CodePet ships as a prebuilt app (installed by the .pkg), nothing has
+    /// wired its Claude Code hooks yet. On first launch — only if the bundle
+    /// carries the tools and the hooks aren't already set up — run the bundled
+    /// installer (via a login shell so Node is on PATH) so it "just works".
+    private func ensureHooksWired() {
+        guard let resURL = Bundle.main.resourceURL else { return }
+        let installer = resURL.appendingPathComponent("tools/install-hooks.js")
+        guard FileManager.default.fileExists(atPath: installer.path) else { return }
+
+        let settings = Paths.home.appendingPathComponent(".claude/settings.json")
+        if let s = try? String(contentsOf: settings, encoding: .utf8),
+           s.contains("/codepet/hook") || s.contains("codepet-hook.js") {
+            return   // already wired (by this app before, or by install.sh)
+        }
+
+        let res = resURL.path
+        DispatchQueue.global(qos: .utility).async {
+            let script = """
+            node "\(res)/tools/install-hooks.js" install "\(res)"
+            mkdir -p "$HOME/.claude/skills"
+            ln -sfn "\(res)/skills/hatch-pet" "$HOME/.claude/skills/codepet-hatch"
+            ln -sfn "\(res)/skills/petdex" "$HOME/.claude/skills/codepet-petdex"
+            """
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/bin/zsh")
+            p.arguments = ["-lc", script]
+            try? p.run()
+            p.waitUntilExit()
+            NSLog("CodePet: first-launch hook setup finished (status \(p.terminationStatus))")
+        }
     }
 
     private func beginInstalling() { installingCount += 1; updateBadge() }
