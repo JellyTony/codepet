@@ -11,9 +11,12 @@ enum VectorPet {
         let motion = Behavior.motion(for: activity, t: t, span: span)
 
         let cx = size.width / 2 + motion.dx
-        // Gentle idle float so the pet feels alive even when standing still.
+        // Gentle idle float + a little hop on each step so the pet feels alive.
         let idleBob = (activity == .idle) ? CGFloat(sin(t * 1.6)) * size.height * 0.013 : 0
-        let baseY = size.height * 0.60 + motion.dy + idleBob
+        let walking = motion.action == .walk || motion.action == .walkRight || motion.action == .walkLeft
+        let walkBob = walking ? -abs(sin(t * 6.0)) * size.height * 0.020 : 0
+        let yOffset = motion.dy + idleBob + walkBob
+        let baseY = size.height * 0.60 + yOffset
         let bodyW = size.width * 0.46
         let bodyH = size.height * 0.42
         // Identity colour stays constant across states (like Codex); the state
@@ -35,8 +38,8 @@ enum VectorPet {
         default: break
         }
 
-        // Contact shadow (shrinks as the pet hops).
-        let lift = max(0, -motion.dy)
+        // Contact shadow (shrinks as the pet rises).
+        let lift = max(0, -yOffset)
         let shadowW = bodyW * (1.0 - lift / 120.0)
         let shadowRect = CGRect(x: cx - shadowW / 2,
                                 y: size.height * 0.60 + bodyH * 0.52,
@@ -120,17 +123,22 @@ enum VectorPet {
     }
 
     private static func drawWavingArm(ctx: inout GraphicsContext, body: CGRect, t: Double, tint: Color) {
-        let wave = sin(t * 10) * 0.5
-        let shoulder = CGPoint(x: body.maxX - body.width * 0.05, y: body.midY)
-        let hand = CGPoint(x: body.maxX + body.width * 0.22,
-                           y: body.minY - body.height * 0.08 + CGFloat(wave) * 14)
+        let wave = sin(t * 9) * 0.5
+        let shoulder = CGPoint(x: body.maxX - body.width * 0.04, y: body.midY - body.height * 0.02)
+        let hand = CGPoint(x: body.maxX + body.width * 0.24,
+                           y: body.minY - body.height * 0.10 + CGFloat(wave) * 20)
         var arm = Path()
         arm.move(to: shoulder)
-        arm.addQuadCurve(to: hand, control: CGPoint(x: body.maxX + body.width * 0.18, y: body.midY))
-        ctx.stroke(arm, with: .color(tint), style: StrokeStyle(lineWidth: 5, lineCap: .round))
-        let r = body.width * 0.07
+        arm.addQuadCurve(to: hand, control: CGPoint(x: body.maxX + body.width * 0.20,
+                                                    y: body.midY - body.height * 0.06))
+        ctx.stroke(arm, with: .color(tint), style: StrokeStyle(lineWidth: 6, lineCap: .round))
+        let r = body.width * 0.085
         ctx.fill(Ellipse().path(in: CGRect(x: hand.x - r, y: hand.y - r, width: r * 2, height: r * 2)),
                  with: .color(tint))
+        // little catch-light on the hand
+        let hr = r * 0.42
+        ctx.fill(Ellipse().path(in: CGRect(x: hand.x - hr * 0.3, y: hand.y - hr, width: hr, height: hr)),
+                 with: .color(.white.opacity(0.35)))
     }
 
     private static func drawPackage(ctx: inout GraphicsContext, body: CGRect) {
