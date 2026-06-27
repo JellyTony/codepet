@@ -71,8 +71,8 @@ struct Session: Codable, Equatable, Identifiable {
 
     /// Compact one-line progress, e.g. "Edit · 42 actions · 3m" (localized).
     func progressLine(now: Double) -> String {
+        // The current action now lives in the summary line; keep this to metrics.
         var parts: [String] = []
-        if let d = detail, !d.isEmpty { parts.append(d) }   // tool names stay as-is
         if let c = toolCount, c > 0 { parts.append(L.actions(c)) }
         let e = Session.elapsed(since: startedAt, now: now)
         if !e.isEmpty { parts.append(e) }

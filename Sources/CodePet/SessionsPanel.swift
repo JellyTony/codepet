@@ -186,10 +186,13 @@ struct SessionCard: View {
     /// otherwise the latest assistant narration, falling back to the status.
     private var summaryText: String {
         switch session.state {
-        case .waiting, .failed:
+        case .running, .waiting, .failed:
+            // Real-time: the current tool action / notification straight from the
+            // hooks. The transcript narration isn't written live, so it can't be
+            // the source of a real-time "what's it doing now" line.
             if let d = session.detail, !d.isEmpty { return d }
             return session.summary ?? session.state.label
-        default:
+        default: // ready, idle — show the model's latest narration / result
             if let s = session.summary, !s.isEmpty { return s }
             return session.detail ?? session.state.label
         }

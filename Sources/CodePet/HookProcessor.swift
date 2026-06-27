@@ -124,7 +124,7 @@ enum HookProcessor {
     static func detailFor(_ event: String, _ payload: [String: Any]) -> String? {
         switch event {
         case "PreToolUse", "PostToolUse":
-            return payload["tool_name"] as? String
+            return actionLabel(payload["tool_name"] as? String, payload["tool_input"] as? [String: Any])
         case "Notification":
             return (payload["message"] as? String)
                 ?? (payload["notification_type"] as? String)
@@ -137,6 +137,37 @@ enum HookProcessor {
             return "session started"
         default:
             return nil
+        }
+    }
+
+    /// A short, human-readable description of the current tool action, built from
+    /// the live hook payload — this is the *real-time* "what's it doing now"
+    /// (the transcript narration isn't written live, so it can't be).
+    static func actionLabel(_ tool: String?, _ input: [String: Any]?) -> String? {
+        guard let tool = tool, !tool.isEmpty else { return nil }
+        func file(_ k: String) -> String? {
+            (input?[k] as? String).flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0).lastPathComponent }
+        }
+        func str(_ k: String) -> String? {
+            (input?[k] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        }
+        switch tool {
+        case "Edit", "Write", "MultiEdit", "NotebookEdit":
+            return file("file_path").map { "\(tool) \($0)" } ?? tool
+        case "Read":
+            return file("file_path").map { "Read \($0)" } ?? "Read"
+        case "Bash":
+            return str("command").map { "Bash: " + String($0.prefix(48)) } ?? "Bash"
+        case "Grep", "Glob":
+            return str("pattern").map { "\(tool) \($0)" } ?? tool
+        case "Task":
+            return str("description").map { "Task: \($0)" } ?? "Task"
+        case "WebFetch":
+            return str("url").map { "Fetch \($0)" } ?? "WebFetch"
+        case "WebSearch":
+            return str("query").map { "Search \($0)" } ?? "WebSearch"
+        default:
+            return tool
         }
     }
 
