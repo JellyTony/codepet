@@ -51,6 +51,39 @@ enum L {
 
     static func t(_ k: Key) -> String { table[resolved]?[k] ?? table[.en]![k] ?? "" }
 
+    /// Localize a stored (canonical-English) `detail` string at *render* time, so
+    /// the status line follows the current language live. Status phrases and tool
+    /// verbs are translated; free text (notification messages, file names, args)
+    /// passes through unchanged.
+    static func localizeDetail(_ raw: String) -> String {
+        if let s = statusPhrases[resolved]?[raw] { return s }
+        if let r = raw.range(of: ": "),
+           let v = actionVerbs[resolved]?[String(raw[..<r.lowerBound])] {
+            return v + raw[r.lowerBound...]
+        }
+        return raw
+    }
+
+    private static let statusPhrases: [AppLanguage: [String: String]] = [
+        .zhHans: ["thinking…": "思考中…", "waiting for input": "等待输入",
+                  "session started": "会话开始", "done": "完成"],
+        .zhHant: ["thinking…": "思考中…", "waiting for input": "等待輸入",
+                  "session started": "工作階段開始", "done": "完成"],
+        .ja:     ["thinking…": "思考中…", "waiting for input": "入力待ち",
+                  "session started": "セッション開始", "done": "完了"],
+    ]
+    private static let actionVerbs: [AppLanguage: [String: String]] = [
+        .zhHans: ["Edit": "编辑", "Write": "写入", "MultiEdit": "编辑", "NotebookEdit": "编辑",
+                  "Read": "读取", "Bash": "运行", "Grep": "搜索", "Glob": "匹配",
+                  "Task": "子任务", "Fetch": "抓取", "Search": "搜索"],
+        .zhHant: ["Edit": "編輯", "Write": "寫入", "MultiEdit": "編輯", "NotebookEdit": "編輯",
+                  "Read": "讀取", "Bash": "執行", "Grep": "搜尋", "Glob": "比對",
+                  "Task": "子任務", "Fetch": "抓取", "Search": "搜尋"],
+        .ja:     ["Edit": "編集", "Write": "書き込み", "MultiEdit": "編集", "NotebookEdit": "編集",
+                  "Read": "読み取り", "Bash": "実行", "Grep": "検索", "Glob": "照合",
+                  "Task": "サブタスク", "Fetch": "取得", "Search": "検索"],
+    ]
+
     // MARK: Parameterized
 
     static func actions(_ n: Int) -> String {

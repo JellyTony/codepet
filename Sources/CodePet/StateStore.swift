@@ -118,7 +118,7 @@ final class StateStore: ObservableObject {
         if live.isEmpty { return sessions.isEmpty ? state.detail : nil }
         // Show the winning session's project + action.
         if let top = live.max(by: { $0.state.priority < $1.state.priority }) {
-            let d = top.detail.map { " · \($0)" } ?? ""
+            let d = top.detail.map { " · \(L.localizeDetail($0))" } ?? ""
             return "\(top.project)\(d)"
         }
         return nil

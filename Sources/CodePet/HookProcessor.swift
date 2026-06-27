@@ -151,21 +151,22 @@ enum HookProcessor {
         func str(_ k: String) -> String? {
             (input?[k] as? String).flatMap { $0.isEmpty ? nil : $0 }
         }
+        // Canonical "Verb: arg" so the verb can be localized at render time.
         switch tool {
         case "Edit", "Write", "MultiEdit", "NotebookEdit":
-            return file("file_path").map { "\(tool) \($0)" } ?? tool
+            return file("file_path").map { "\(tool): \($0)" } ?? tool
         case "Read":
-            return file("file_path").map { "Read \($0)" } ?? "Read"
+            return file("file_path").map { "Read: \($0)" } ?? "Read"
         case "Bash":
             return str("command").map { "Bash: " + String($0.prefix(48)) } ?? "Bash"
         case "Grep", "Glob":
-            return str("pattern").map { "\(tool) \($0)" } ?? tool
+            return str("pattern").map { "\(tool): \($0)" } ?? tool
         case "Task":
             return str("description").map { "Task: \($0)" } ?? "Task"
         case "WebFetch":
-            return str("url").map { "Fetch \($0)" } ?? "WebFetch"
+            return str("url").map { "Fetch: \($0)" } ?? "WebFetch"
         case "WebSearch":
-            return str("query").map { "Search \($0)" } ?? "WebSearch"
+            return str("query").map { "Search: \($0)" } ?? "WebSearch"
         default:
             // MCP tools arrive as "mcp__<server>__<tool>" — show "server: tool".
             if tool.hasPrefix("mcp__") {

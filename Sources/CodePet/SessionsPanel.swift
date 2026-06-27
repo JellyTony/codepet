@@ -188,13 +188,14 @@ struct SessionCard: View {
         switch session.state {
         case .running, .waiting, .failed:
             // Real-time: the current tool action / notification straight from the
-            // hooks. The transcript narration isn't written live, so it can't be
-            // the source of a real-time "what's it doing now" line.
-            if let d = session.detail, !d.isEmpty { return d }
+            // hooks (localized at render so it follows the language live). The
+            // transcript narration isn't written live, so it can't be the source
+            // of a real-time "what's it doing now" line.
+            if let d = session.detail, !d.isEmpty { return L.localizeDetail(d) }
             return session.summary ?? session.state.label
         default: // ready, idle — show the model's latest narration / result
             if let s = session.summary, !s.isEmpty { return s }
-            return session.detail ?? session.state.label
+            return session.detail.map(L.localizeDetail) ?? session.state.label
         }
     }
 
