@@ -16,6 +16,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var resizeBaseScale: Double = 1.0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Docs mode: render the README promo images and quit (no UI).
+        if ProcessInfo.processInfo.environment["CODEPET_DOCSHOT"] != nil {
+            DocShot.renderAll()
+            exit(0)
+        }
         // Agent app: no Dock icon.
         NSApp.setActivationPolicy(.accessory)
 
