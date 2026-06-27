@@ -167,6 +167,11 @@ enum HookProcessor {
         case "WebSearch":
             return str("query").map { "Search \($0)" } ?? "WebSearch"
         default:
+            // MCP tools arrive as "mcp__<server>__<tool>" — show "server: tool".
+            if tool.hasPrefix("mcp__") {
+                let parts = tool.dropFirst("mcp__".count).components(separatedBy: "__")
+                if parts.count >= 2 { return "\(parts[0]): \(parts.dropFirst().joined(separator: " "))" }
+            }
             return tool
         }
     }

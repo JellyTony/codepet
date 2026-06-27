@@ -176,15 +176,15 @@ final class StateStore: ObservableObject {
             .joined(separator: "|")
     }
 
-    /// Re-read each live session's summary straight from its transcript, so the
-    /// "what's it doing now" line stays current even during long stretches with
-    /// no hook events — e.g. while the model is writing a reply and not calling
-    /// tools (the only signal then is the transcript growing). Reads run off the
+    /// Re-read the summary from the transcript for **ready** sessions — the only
+    /// state whose card shows the model's narration (running/waiting/failed show
+    /// the live action instead). This catches the final message when the
+    /// transcript flushes it a moment after the Stop event. Reads run off the
     /// main thread; only changed summaries are published.
     private func refreshLiveSummaries() {
         let t = now()
         let targets = sessions.filter {
-            $0.isLive(now: t) && $0.state != .idle && ($0.transcriptPath?.isEmpty == false)
+            $0.state == .ready && $0.isLive(now: t) && ($0.transcriptPath?.isEmpty == false)
         }
         guard !targets.isEmpty else { return }
         DispatchQueue.global(qos: .utility).async { [weak self] in
