@@ -46,6 +46,7 @@ final class StateStore: ObservableObject {
         pollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.reload()
             self?.reloadSessionsIfChanged()
+            self?.refreshLiveSummaries()
         }
     }
 
@@ -173,6 +174,40 @@ final class StateStore: ObservableObject {
                 return "\(f.lastPathComponent):\(Int(m))"
             }
             .joined(separator: "|")
+    }
+
+    /// Re-read each live session's summary straight from its transcript, so the
+    /// "what's it doing now" line stays current even during long stretches with
+    /// no hook events — e.g. while the model is writing a reply and not calling
+    /// tools (the only signal then is the transcript growing). Reads run off the
+    /// main thread; only changed summaries are published.
+    private func refreshLiveSummaries() {
+        let t = now()
+        let targets = sessions.filter {
+            $0.isLive(now: t) && $0.state != .idle && ($0.transcriptPath?.isEmpty == false)
+        }
+        guard !targets.isEmpty else { return }
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            var fresh: [String: String] = [:]
+            for s in targets {
+                guard let tp = s.transcriptPath,
+                      let sum = HookProcessor.transcriptSummary(tp), sum != s.summary else { continue }
+                fresh[s.sessionId] = sum
+            }
+            guard !fresh.isEmpty else { return }
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                var updated = self.sessions
+                var didChange = false
+                for i in updated.indices {
+                    if let sum = fresh[updated[i].sessionId], updated[i].summary != sum {
+                        updated[i].summary = sum
+                        didChange = true
+                    }
+                }
+                if didChange { self.sessions = updated }
+            }
+        }
     }
 
     private func reloadSessions() {
