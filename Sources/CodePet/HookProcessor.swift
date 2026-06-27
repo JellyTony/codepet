@@ -39,9 +39,23 @@ enum HookProcessor {
         let file = Paths.sessionsDir.appendingPathComponent(safeName(sessionId) + ".json")
         let prev = readSession(file) ?? [:]
 
+        // A finished turn is "ready for review" and should STAY ready until the
+        // next task actually starts. Claude Code fires trailing events right after
+        // `Stop` — a "your turn" Notification, a late tool callback, a
+        // SubagentStop — and inferring "waiting"/"running" from those made the
+        // card look like the ended state reverted. So once a session is ready,
+        // only a new prompt (→ working) or a genuine error (→ failed) moves it off
+        // ready; everything else keeps it ready.
+        var sessionState = state
+        if (prev["state"] as? String) == "ready",
+           event != "UserPromptSubmit", event != "SessionStart",
+           !looksLikeError(payload) {
+            sessionState = "ready"
+        }
+
         var rec: [String: Any] = [:]
         rec["session_id"] = sessionId
-        rec["state"] = state
+        rec["state"] = sessionState
         set(&rec, "detail", merged(detail, prev["detail"]))
         set(&rec, "cwd", merged(payload["cwd"], prev["cwd"]))
         set(&rec, "prompt", prev["prompt"])
