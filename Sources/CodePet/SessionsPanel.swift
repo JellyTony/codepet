@@ -20,15 +20,11 @@ struct SessionsView: View {
                 if visible.isEmpty {
                     emptyCard.transition(.opacity)
                 } else {
-                    ForEach(Array(visible.enumerated()), id: \.element.id) { idx, session in
+                    ForEach(visible) { session in
                         SessionCard(session: session, now: now)
                             .transition(.asymmetric(
-                                insertion: .scale(scale: 0.86, anchor: .bottom).combined(with: .opacity),
-                                removal: .scale(scale: 0.92, anchor: .bottom).combined(with: .opacity)))
-                            // Stagger each card in for a lively cascade.
-                            .animation(.spring(response: 0.42, dampingFraction: 0.78)
-                                        .delay(Double(idx) * 0.05),
-                                       value: visible.count)
+                                insertion: .scale(scale: 0.9, anchor: .bottom).combined(with: .opacity),
+                                removal: .scale(scale: 0.9, anchor: .bottom).combined(with: .opacity)))
                     }
                 }
                 collapseButton
@@ -101,7 +97,6 @@ struct SessionCard: View {
         .opacity(session.isLive(now: now) ? 1.0 : 0.66)
         .offset(y: hovering ? -1.5 : 0)   // gentle lift on hover (with the shadow)
         .animation(.easeOut(duration: 0.16), value: hovering)
-        .animation(.spring(response: 0.35, dampingFraction: 0.72), value: session.state)
         .help(helpText)
         .onHover { h in
             hovering = h
@@ -151,8 +146,6 @@ struct SessionCard: View {
             StatusIndicator(state: session.state, color: indicatorColor)
                 .frame(width: 16, height: 16)
                 .padding(.top, 1)
-                .id(session.state)   // cross-fade when the state changes
-                .transition(.scale(scale: 0.5).combined(with: .opacity))
         }
     }
 
