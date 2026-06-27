@@ -29,6 +29,11 @@ if [ ! -f "$ROOT/Resources/AppIcon.icns" ] && command -v iconutil >/dev/null 2>&
 fi
 [ -f "$ROOT/Resources/AppIcon.icns" ] && cp "$ROOT/Resources/AppIcon.icns" "$RES/AppIcon.icns"
 
+# Bundle the Claude Code hooks + skills so a downloaded .app is self-contained
+# (the release installer wires them from inside the bundle).
+cp -R "$ROOT/tools" "$RES/tools"
+cp -R "$ROOT/skills" "$RES/skills"
+
 # Ad-hoc code signature so macOS will run it locally.
 codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || \
   echo "  (codesign skipped — app still runs locally)"

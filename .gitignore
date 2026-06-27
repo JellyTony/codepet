@@ -1,5 +1,6 @@
 # Build output (the app bundle is produced by build.sh)
 build/
+dist/
 *.app
 
 # Swift / Xcode

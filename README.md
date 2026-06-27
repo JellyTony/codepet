@@ -10,6 +10,8 @@ A native macOS desktop pet for **Claude Code** — a faithful reimagining of
 creature lives in the corner of your screen and reflects what your agents are
 doing, at a glance, while you work in other apps.
 
+> 🇨🇳 [中文说明文档](README.zh-CN.md)
+
 > Same idea, same overlay, same card-stack layout as Codex pets — built for
 > Claude Code, and **multi-session aware**.
 
@@ -95,6 +97,16 @@ they're drawn and animated procedurally, so every state is fully animated out of
 the box.
 
 ## Install
+
+### Download (no build needed)
+
+Grab `CodePet-macos.zip` from the [latest release](https://github.com/JellyTony/codepet/releases/latest),
+unzip, and double-click **`Install CodePet.command`** (if macOS blocks it,
+right-click → Open → Open). It copies CodePet to `/Applications`, clears the
+download quarantine, wires the Claude Code hooks, and launches the pet.
+Requires macOS 13+ and [Node.js](https://nodejs.org) for the hooks.
+
+### Build from source
 
 ```bash
 git clone https://github.com/JellyTony/codepet.git
