@@ -18,12 +18,11 @@ private func mk(_ id: String, _ state: PetActivity, project cwd: String, _ title
 }
 
 private struct PetSnap: View {
-    let activity: PetActivity; var t: Double
+    let activity: PetActivity; var t: Double; var species: PetSpecies = .blob
     var body: some View {
         Canvas { ctx, size in
             VectorPet.draw(ctx: &ctx, size: size, t: t, activity: activity,
-                           species: .blob, baseColor: Color(red: 0.27, green: 0.74, blue: 0.78),
-                           gaze: .zero)
+                           species: species, baseColor: species.identityColor, gaze: .zero)
         }
     }
 }
@@ -97,8 +96,24 @@ private struct PetSnap: View {
 
         let cardsOnly = cardStack.padding(.bottom, 16).background(bg).frame(width: 304)
 
+        let forms: [(PetSpecies, String)] = [(.blob, "Blob"), (.cat, "Stacky"),
+                                             (.robot, "Byte"), (.ghost, "Glitch")]
+        let formsRow = HStack(spacing: 10) {
+            ForEach(Array(forms.enumerated()), id: \.offset) { _, f in
+                VStack(spacing: 2) {
+                    PetSnap(activity: .idle, t: 3.0, species: f.0).frame(width: 124, height: 118)
+                    Text(f.1).font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.black.opacity(0.62))
+                }
+            }
+        }
+        .padding(.horizontal, 26).padding(.vertical, 18)
+        .background(bg)
+        .frame(width: 600, height: 184)
+
         save(hero, out("hero.png"))
         save(statesRow, out("states.png"))
         save(cardsOnly, out("cards.png"))
+        save(formsRow, out("forms.png"))
     }
 }

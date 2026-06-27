@@ -11,7 +11,9 @@ enum VectorPet {
         let motion = Behavior.motion(for: activity, t: t, span: span)
 
         let cx = size.width / 2 + motion.dx
-        let baseY = size.height * 0.60 + motion.dy
+        // Gentle idle float so the pet feels alive even when standing still.
+        let idleBob = (activity == .idle) ? CGFloat(sin(t * 1.6)) * size.height * 0.013 : 0
+        let baseY = size.height * 0.60 + motion.dy + idleBob
         let bodyW = size.width * 0.46
         let bodyH = size.height * 0.42
         // Identity colour stays constant across states (like Codex); the state
@@ -25,7 +27,9 @@ enum VectorPet {
         case .walk, .walkRight, .walkLeft:
             squash = 1.0 + sin(t * 12.0) * 0.05
         case .jump:
-            squash = 1.12
+            // Squash on the ground, stretch in the air — classic bounce.
+            let f = max(0, min(1, -motion.dy / Behavior.maxUpwardTravel))
+            squash = 0.90 + 0.24 * f
         case .fail:
             squash = 0.96
         default: break

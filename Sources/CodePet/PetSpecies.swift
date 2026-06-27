@@ -68,17 +68,23 @@ enum PetSpecies: String, CaseIterable {
         case .blob, .ghost:
             break
         case .cat:
-            // Two triangular ears.
+            // Two triangular ears with a soft pink inner ear.
             for sx in [-1.0, 1.0] {
-                var ear = Path()
                 let ex = body.midX + CGFloat(sx) * body.width * 0.30
                 let topY = body.minY - body.height * 0.02
+                var ear = Path()
                 ear.move(to: CGPoint(x: ex - body.width * 0.12, y: topY))
                 ear.addLine(to: CGPoint(x: ex + CGFloat(sx) * body.width * 0.02, y: topY - body.height * 0.26))
                 ear.addLine(to: CGPoint(x: ex + body.width * 0.12, y: topY))
                 ear.closeSubpath()
                 ctx.fill(ear, with: .color(tint))
-                ctx.stroke(ear, with: .color(.black.opacity(0.28)), lineWidth: 2)
+                var inner = Path()
+                inner.move(to: CGPoint(x: ex - body.width * 0.06, y: topY - body.height * 0.01))
+                inner.addLine(to: CGPoint(x: ex + CGFloat(sx) * body.width * 0.015, y: topY - body.height * 0.175))
+                inner.addLine(to: CGPoint(x: ex + body.width * 0.06, y: topY - body.height * 0.01))
+                inner.closeSubpath()
+                ctx.fill(inner, with: .color(Color(red: 0.97, green: 0.62, blue: 0.68).opacity(0.9)))
+                ctx.stroke(ear, with: .color(.black.opacity(0.20)), lineWidth: 1.6)
             }
             // Whiskers.
             for sx in [-1.0, 1.0] {
@@ -97,20 +103,29 @@ enum PetSpecies: String, CaseIterable {
             var stem = Path()
             stem.move(to: CGPoint(x: body.midX, y: body.minY))
             stem.addLine(to: CGPoint(x: body.midX, y: body.minY - body.height * 0.22))
-            ctx.stroke(stem, with: .color(.black.opacity(0.5)),
+            ctx.stroke(stem, with: .color(.black.opacity(0.45)),
                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
             let pulse = (sin(t * 4) + 1) / 2
-            let br = body.width * 0.07
-            let bulb = CGRect(x: body.midX - br, y: body.minY - body.height * 0.22 - br,
-                              width: br * 2, height: br * 2)
-            ctx.fill(Circle().path(in: bulb),
-                     with: .color(.red.opacity(0.5 + 0.5 * pulse)))
-            // Side bolts.
+            let br = body.width * 0.078
+            let bc = CGPoint(x: body.midX, y: body.minY - body.height * 0.22)
+            // Glowing, glossy bulb.
+            ctx.fill(Circle().path(in: CGRect(x: bc.x - br * 1.9, y: bc.y - br * 1.9,
+                                              width: br * 3.8, height: br * 3.8)),
+                     with: .color(Color(red: 1, green: 0.3, blue: 0.3).opacity(0.10 + 0.20 * pulse)))
+            ctx.fill(Circle().path(in: CGRect(x: bc.x - br, y: bc.y - br, width: br * 2, height: br * 2)),
+                     with: .color(Color(red: 1, green: 0.33, blue: 0.33).opacity(0.62 + 0.38 * pulse)))
+            ctx.fill(Circle().path(in: CGRect(x: bc.x - br * 0.32, y: bc.y - br * 0.55,
+                                              width: br * 0.5, height: br * 0.5)),
+                     with: .color(.white.opacity(0.85)))
+            // Riveted side bolts with a highlight.
             for sx in [-1.0, 1.0] {
-                let r = body.width * 0.05
-                let c = CGRect(x: body.midX + CGFloat(sx) * body.width * 0.5 - r,
-                               y: body.midY - r, width: r * 2, height: r * 2)
-                ctx.fill(Circle().path(in: c), with: .color(.black.opacity(0.3)))
+                let r = body.width * 0.055
+                let bx = body.midX + CGFloat(sx) * body.width * 0.5
+                ctx.fill(Circle().path(in: CGRect(x: bx - r, y: body.midY - r, width: r * 2, height: r * 2)),
+                         with: .color(.black.opacity(0.22)))
+                ctx.fill(Circle().path(in: CGRect(x: bx - r * 0.5, y: body.midY - r * 0.55,
+                                                  width: r, height: r)),
+                         with: .color(.white.opacity(0.45)))
             }
         }
     }

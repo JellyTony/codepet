@@ -113,6 +113,10 @@ entry. Built-in **forms** (Blob, Stacky, Byte, Glitch) need no assets at all —
 they're drawn and animated procedurally, so every state is fully animated out of
 the box.
 
+<p align="center">
+  <img src="docs/forms.png" width="640" alt="the four built-in forms: Blob, Stacky, Byte, Glitch">
+</p>
+
 ## Install
 
 ### Download (no build needed)
