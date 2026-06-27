@@ -1,0 +1,49 @@
+name: release
+
+# Tag a version and push it — this builds CodePet.app, packages CodePet.pkg,
+# and publishes a GitHub Release with the installer attached.
+#
+#   git tag v0.1.2 && git push origin v0.1.2
+#
+# Or run it by hand from the Actions tab (workflow_dispatch) against a tag.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write   # create releases + upload assets
+
+jobs:
+  release:
+    name: Build & publish CodePet.pkg
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: |
+          REF="${GITHUB_REF_NAME}"
+          if [[ "$REF" == v* ]]; then VERSION="${REF#v}"; TAG="$REF";
+          else VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Resources/Info.plist)"; TAG="v$VERSION"; fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Building CodePet $VERSION ($TAG)"
+
+      - name: Build & package
+        run: bash package.sh "${{ steps.ver.outputs.version }}"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/CodePet.pkg --clobber
+          else
+            gh release create "$TAG" dist/CodePet.pkg \
+              --title "CodePet $TAG" \
+              --generate-notes
+          fi

@@ -69,3 +69,17 @@ wires these idempotently into `~/.claude/settings.json`.
 
 By contributing you agree your contributions are licensed under the project's
 [MIT License](LICENSE).
+
+## Releasing
+
+Releases are automated. Bump the version in `Resources/Info.plist`, then tag and
+push:
+
+```bash
+git tag v0.1.2 && git push origin v0.1.2
+```
+
+The `release` GitHub Action (`.github/workflows/release.yml`) builds the app on a
+macOS runner, runs `package.sh` to produce `CodePet.pkg`, and publishes a GitHub
+Release with the installer attached. You can also build the installer locally with
+`bash package.sh <version>`.
