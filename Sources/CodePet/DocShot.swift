@@ -13,9 +13,13 @@ enum DocShot {
     @MainActor
     static func renderAll() {
         L.language = .en   // promo images read in English
-        let docs = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appendingPathComponent("docs")
+        // Default to ./docs; override with CODEPET_DOCSHOT_DIR to preview first.
+        let dir = ProcessInfo.processInfo.environment["CODEPET_DOCSHOT_DIR"]
+            ?? (FileManager.default.currentDirectoryPath + "/docs")
+        let docs = URL(fileURLWithPath: dir)
         renderHero(to: docs.appendingPathComponent("hero.png"))
+        save(StatesShot(), scale: 2, to: docs.appendingPathComponent("states.png"))
+        save(FormsShot(), scale: 2, to: docs.appendingPathComponent("forms.png"))
     }
 
     @MainActor
@@ -104,5 +108,84 @@ private struct HeroShot: View {
             .padding(.horizontal, 26)
         }
         .frame(width: 480, height: 680)
+    }
+}
+
+/// The soft pastel backdrop shared by every promo image.
+private struct DocBackdrop: View {
+    var body: some View {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color(red: 0.914, green: 0.933, blue: 0.992),
+                Color(red: 0.866, green: 0.960, blue: 0.972)]),
+            startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+}
+
+/// One statically-posed creature, drawn by the real VectorPet renderer.
+private struct PetGlyph: View {
+    let species: PetSpecies
+    let activity: PetActivity
+    var t: Double = 0.55
+
+    var body: some View {
+        Canvas { ctx, size in
+            VectorPet.draw(ctx: &ctx, size: size, t: t, activity: activity,
+                           species: species, baseColor: species.identityColor, gaze: .zero)
+        }
+    }
+}
+
+private struct PetLabel: View {
+    let text: String
+    var body: some View {
+        Text(text)
+            .font(.system(size: 21, weight: .semibold, design: .rounded))
+            .foregroundStyle(Color.black.opacity(0.55))
+    }
+}
+
+/// The five pet states in a row — working / needs-you / ready / failed / idle.
+private struct StatesShot: View {
+    private let states: [(PetActivity, String)] = [
+        (.running, "working…"), (.waiting, "needs you"), (.ready, "ready"),
+        (.failed, "failed"), (.idle, "idle"),
+    ]
+    var body: some View {
+        ZStack {
+            DocBackdrop()
+            HStack(spacing: 22) {
+                ForEach(states, id: \.1) { state, label in
+                    VStack(spacing: 6) {
+                        PetGlyph(species: .blob, activity: state)
+                            .frame(width: 150, height: 158)
+                        PetLabel(text: label)
+                    }
+                }
+            }
+            .padding(.horizontal, 30).padding(.bottom, 26)
+        }
+        .frame(width: 1020, height: 300)
+    }
+}
+
+/// Every built-in form in a row, idle — Blob, Stacky, Byte, Glitch, Ducky, Rex, Java.
+private struct FormsShot: View {
+    private let forms: [PetSpecies] = [.blob, .cat, .robot, .ghost, .duck, .dino, .coffee]
+    var body: some View {
+        ZStack {
+            DocBackdrop()
+            HStack(spacing: 16) {
+                ForEach(forms, id: \.self) { species in
+                    VStack(spacing: 6) {
+                        PetGlyph(species: species, activity: .idle)
+                            .frame(width: 150, height: 158)
+                        PetLabel(text: species.title)
+                    }
+                }
+            }
+            .padding(.horizontal, 28).padding(.bottom, 26)
+        }
+        .frame(width: 1380, height: 300)
     }
 }

@@ -115,7 +115,7 @@ offline dino), and **Java** ☕ — all drawn and animated procedurally, so ever
 state is fully animated out of the box.
 
 <p align="center">
-  <img src="docs/forms.png" width="640" alt="the four built-in forms: Blob, Stacky, Byte, Glitch">
+  <img src="docs/forms.png" width="720" alt="the seven built-in forms: Blob, Stacky, Byte, Glitch, Ducky, Rex, Java">
 </p>
 
 ## Install
