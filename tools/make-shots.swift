@@ -110,9 +110,25 @@ private struct PetSnap: View {
         .background(bg)
         .frame(width: 900, height: 178)
 
+        let emptyMock = HStack(spacing: 10) {
+            MiniPet(size: 42)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("No active sessions")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundStyle(CardInk.title)
+                Text("Start Claude Code and it'll appear here")
+                    .font(.system(size: 10.5, design: .rounded)).foregroundStyle(CardInk.subtle)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 15).padding(.vertical, 13)
+        .background(CardBackground())
+        .frame(width: 268)
+        .padding(22).background(bg).frame(width: 320)
+
         save(hero, out("hero.png"))
         save(statesRow, out("states.png"))
         save(cardsOnly, out("cards.png"))
         save(formsRow, out("forms.png"))
+        save(emptyMock, out("empty.png"))
     }
 }

@@ -41,7 +41,7 @@ struct SessionsView: View {
 
     private var emptyCard: some View {
         HStack(spacing: 10) {
-            Text("😴").font(.system(size: 18))
+            MiniPet(size: 42)
             VStack(alignment: .leading, spacing: 2) {
                 Text(L.t(.noSessions))
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -277,6 +277,21 @@ struct CardBackground: View {
             .shadow(color: (accent ?? .black).opacity(accent != nil ? 0.26 : 0.15),
                     radius: highlighted ? 13 : 10, x: 0, y: highlighted ? 6 : 4)
             .shadow(color: .black.opacity(0.05), radius: 1.5, x: 0, y: 1)
+    }
+}
+
+/// A tiny idle pet — used to give the empty state some brand charm.
+struct MiniPet: View {
+    var size: CGFloat = 42
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 0.1)) { tl in
+            let t = tl.date.timeIntervalSinceReferenceDate
+            Canvas { ctx, sz in
+                VectorPet.draw(ctx: &ctx, size: sz, t: t, activity: .idle,
+                               species: .blob, baseColor: PetSpecies.blob.identityColor, gaze: .zero)
+            }
+        }
+        .frame(width: size, height: size)
     }
 }
 
