@@ -180,10 +180,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.title = n > 0 ? "🐾\(n)" : "🐾"
     }
 
+    /// The hook set this build expects to be wired. Must match HOOKS_VERSION in
+    /// install-hooks.js — bump both together when the event list changes so an
+    /// older install re-runs the installer and picks up the new hooks.
+    private static let expectedHooksVersion = 2
+
+    /// Version of the hooks currently wired, recorded by install-hooks.js in
+    /// ~/.codepet/hook.json. 0 when absent (pre-versioning install).
+    private func installedHooksVersion() -> Int {
+        let cfg = Paths.home.appendingPathComponent(".codepet/hook.json")
+        guard let data = try? Data(contentsOf: cfg),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return 0 }
+        return (obj["version"] as? Int) ?? 0
+    }
+
     /// When CodePet ships as a prebuilt app (installed by the .pkg), nothing has
-    /// wired its Claude Code hooks yet. On first launch — only if the bundle
-    /// carries the tools and the hooks aren't already set up — run the bundled
-    /// installer (via a login shell so Node is on PATH) so it "just works".
+    /// wired its Claude Code hooks yet. On first launch — or after an upgrade
+    /// that adds new hook events — run the bundled installer (via a login shell
+    /// so Node is on PATH) so it "just works".
     private func ensureHooksWired() {
         guard let resURL = Bundle.main.resourceURL else { return }
         let installer = resURL.appendingPathComponent("tools/install-hooks.js")
@@ -191,9 +205,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let settings = Paths.home.appendingPathComponent(".claude/settings.json")
         if let s = try? String(contentsOf: settings, encoding: .utf8),
-           s.contains("/codepet/hook") || s.contains("codepet-hook.js") {
-            return   // already wired (by this app before, or by install.sh)
+           s.contains("/codepet/hook") || s.contains("codepet-hook.js"),
+           installedHooksVersion() >= Self.expectedHooksVersion {
+            return   // already wired at the current version (this app, or install.sh)
         }
+        // Wired by an older CodePet (or not at all) → run the idempotent installer
+        // so newly-added events like SessionEnd get registered.
 
         let res = resURL.path
         DispatchQueue.global(qos: .utility).async {

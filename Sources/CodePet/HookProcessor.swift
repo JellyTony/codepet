@@ -18,6 +18,16 @@ enum HookProcessor {
     @discardableResult
     static func process(_ payload: [String: Any]) -> Bool {
         let event = payload["hook_event_name"] as? String ?? ""
+
+        // A session that ended should leave the stage now — not linger as a card
+        // until the 20-min live window times out. Claude Code fires SessionEnd
+        // when the user exits, runs /clear, logs out, or otherwise closes the
+        // session, so retire the record on any SessionEnd.
+        if event == "SessionEnd" {
+            endSession(payload)
+            return true
+        }
+
         guard let state = inferState(event, payload) else { return false }
 
         let now = Date().timeIntervalSince1970
@@ -101,6 +111,21 @@ enum HookProcessor {
 
         atomicWrite(file, rec)
         return true
+    }
+
+    /// Retire an ended session: drop its per-session card file and clear the
+    /// legacy global state if it was still pointing at this session (so the
+    /// corner pet doesn't keep showing the ended session's last activity).
+    private static func endSession(_ payload: [String: Any]) {
+        guard let sessionId = payload["session_id"] as? String, !sessionId.isEmpty else { return }
+        let file = Paths.sessionsDir.appendingPathComponent(safeName(sessionId) + ".json")
+        try? FileManager.default.removeItem(at: file)
+
+        if let data = try? Data(contentsOf: Paths.stateFile),
+           let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           (obj["session_id"] as? String) == sessionId {
+            atomicWrite(Paths.stateFile, ["state": "idle", "updated_at": Date().timeIntervalSince1970])
+        }
     }
 
     // MARK: - State inference

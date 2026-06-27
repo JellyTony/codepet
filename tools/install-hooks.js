@@ -37,7 +37,15 @@ const CMD_EVENTS = ["SessionStart"];
 const HTTP_EVENTS = [
   "UserPromptSubmit", "PreToolUse", "PostToolUse",
   "Notification", "Stop", "SubagentStop",
+  // SessionEnd lets the app retire a card the moment its session ends, instead
+  // of leaving it on stage until the live window times out.
+  "SessionEnd",
 ];
+
+// Bumped whenever the set of wired events changes, so an already-installed
+// CodePet re-runs the installer on launch to pick up new hooks (see
+// `ensureHooksWired` in main.swift). Stored in ~/.codepet/hook.json.
+const HOOKS_VERSION = 2;
 
 function load() {
   let raw;
@@ -78,6 +86,7 @@ function ensureHookConfig() {
   if (typeof cfg.token !== "string" || !cfg.token) {
     cfg.token = crypto.randomBytes(16).toString("hex");
   }
+  cfg.version = HOOKS_VERSION;
   fs.writeFileSync(hookCfgPath, JSON.stringify(cfg, null, 2) + "\n");
   return cfg;
 }
