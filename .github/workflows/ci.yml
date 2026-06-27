@@ -1,0 +1,31 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build CodePet.app
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: swift --version && xcrun swiftc --version
+
+      - name: Build
+        run: bash build.sh
+
+      - name: Verify app bundle
+        run: |
+          test -x build/CodePet.app/Contents/MacOS/CodePet
+          test -f build/CodePet.app/Contents/Info.plist
+          echo "✓ CodePet.app built"
+
+      - name: Lint Node hooks (syntax only)
+        run: |
+          for f in tools/*.js; do node --check "$f"; done
+          echo "✓ hooks parse"

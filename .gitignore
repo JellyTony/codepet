@@ -1,0 +1,32 @@
+# Build output (the app bundle is produced by build.sh)
+build/
+*.app
+
+# Swift / Xcode
+.build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.swiftpm
+.swiftpm/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Node (tooling deps, if any are ever added)
+node_modules/
+
+# Local runtime/state (never lives in the repo, but ignore defensively)
+.codepet/
+.petdex/
+*.log
