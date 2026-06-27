@@ -27,7 +27,13 @@ struct SessionsView: View {
                                 removal: .scale(scale: 0.9, anchor: .bottom).combined(with: .opacity)))
                     }
                 }
-                collapseButton
+                // Right-aligned so the chevron sits over the pet (which the
+                // stack now hangs to the upper-left of), matching the reference.
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    collapseButton
+                }
+                .padding(.trailing, 16)
             }
             .frame(width: SessionsView.cardWidth)
             // Breathing room so the soft card shadows aren't clipped.
@@ -60,10 +66,19 @@ struct SessionsView: View {
         Button(action: onCollapse) {
             Image(systemName: "chevron.down")
                 .font(.system(size: 9, weight: .heavy))
-                .foregroundStyle(Color.black.opacity(0.4))
-                .frame(width: 24, height: 24)
-                .background(Circle().fill(Color.white))
-                .shadow(color: .black.opacity(0.18), radius: 5, x: 0, y: 2)
+                .foregroundStyle(Color.black.opacity(0.42))
+                .frame(width: 26, height: 26)
+                // A little glossy pebble — same top-lit material as the cards.
+                .background(
+                    Circle()
+                        .fill(LinearGradient(colors: [Color.white, Color(white: 0.95)],
+                                             startPoint: .top, endPoint: .bottom))
+                        .overlay(Circle().strokeBorder(
+                            LinearGradient(colors: [Color.white.opacity(0.9), Color.black.opacity(0.09)],
+                                           startPoint: .top, endPoint: .bottom),
+                            lineWidth: 1)))
+                .shadow(color: .black.opacity(0.16), radius: 5, x: 0, y: 2)
+                .shadow(color: .black.opacity(0.05), radius: 1, x: 0, y: 1)
         }
         .buttonStyle(.plain)
         .help(L.t(.collapseCards))
@@ -77,26 +92,31 @@ struct SessionCard: View {
     let now: Double
 
     @State private var hovering = false
+    @State private var replyOpen = false
     @State private var replyText = ""
+    @FocusState private var replyFocused: Bool
 
     private var title: String { session.displayTitle }
+    private var canReply: Bool { TerminalInput.canSend(to: session) }
+    /// The reply field is shown when the user opens it, or whenever the session
+    /// is actually waiting on input (where a reply is the obvious next move).
+    private var showReply: Bool { canReply && (replyOpen || session.state == .waiting) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            contentRow
-                .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .onTapGesture { focusTerminal() }   // click body → focus terminal
-            // Quick reply — type straight into this session without switching.
-            if TerminalInput.canSend(to: session) && (hovering || session.state == .waiting) {
-                replyRow.transition(.opacity)
-            }
+        VStack(alignment: .leading, spacing: 9) {
+            // Tapping the body focuses the terminal; press gives a gentle dip.
+            Button(action: focusTerminal) { contentRow }
+                .buttonStyle(CardPressStyle())
+            footer
         }
         .padding(.horizontal, 15).padding(.vertical, 12)
-        .background(CardBackground(highlighted: hovering,
+        .background(CardBackground(highlighted: hovering || replyFocused,
                                    accent: session.state.needsAttention ? statusColor : nil))
         .opacity(session.isLive(now: now) ? 1.0 : 0.66)
-        .offset(y: hovering ? -1.5 : 0)   // gentle lift on hover (with the shadow)
-        .animation(.easeOut(duration: 0.16), value: hovering)
+        .scaleEffect(hovering && !replyFocused ? 1.012 : 1.0, anchor: .center)
+        .offset(y: hovering && !replyFocused ? -2 : 0)   // gentle lift on hover
+        .animation(.spring(response: 0.28, dampingFraction: 0.7), value: hovering)
+        .animation(.spring(response: 0.34, dampingFraction: 0.84), value: showReply)
         .help(helpText)
         .onHover { h in
             hovering = h
@@ -105,17 +125,53 @@ struct SessionCard: View {
         .contextMenu { contextItems }
     }
 
+    /// Below the content: the reply field when open/waiting, otherwise a quiet
+    /// "reply" affordance that only appears on hover — so the layout stays calm
+    /// until you actually reach for it.
+    @ViewBuilder private var footer: some View {
+        if showReply {
+            replyRow.transition(.move(edge: .bottom).combined(with: .opacity))
+        } else if hovering && canReply {
+            replyHint.transition(.opacity)
+        }
+    }
+
+    private var replyHint: some View {
+        Button(action: openReply) {
+            HStack(spacing: 5) {
+                Image(systemName: "arrowshape.turn.up.left.fill")
+                    .font(.system(size: 9, weight: .semibold))
+                Text(L.t(.replyPlaceholder))
+                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(CardInk.subtle)
+            .padding(.horizontal, 11).padding(.vertical, 6)
+            .background(
+                Capsule().fill(Color.black.opacity(0.035))
+                    .overlay(Capsule().strokeBorder(Color.black.opacity(0.055), lineWidth: 0.75)))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(CardPressStyle())
+    }
+
     private var contentRow: some View {
         HStack(alignment: .top, spacing: 11) {
             VStack(alignment: .leading, spacing: 3) {
                 // Project chip + title row.
                 HStack(spacing: 6) {
-                    Text(session.project)
-                        .font(.system(size: 9, weight: .heavy, design: .rounded))
-                        .foregroundStyle(statusColor)
-                        .lineLimit(1)
-                        .padding(.horizontal, 6).padding(.vertical, 1)
-                        .background(Capsule().fill(statusColor.opacity(0.12)))
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(statusColor)
+                            .frame(width: 4.5, height: 4.5)
+                        Text(session.project)
+                            .font(.system(size: 9, weight: .heavy, design: .rounded))
+                            .tracking(0.3)
+                            .foregroundStyle(statusColor)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 7).padding(.vertical, 2)
+                    .background(Capsule().fill(statusColor.opacity(0.11)))
                     Spacer(minLength: 0)
                 }
                 Text(title)
@@ -150,28 +206,52 @@ struct SessionCard: View {
     }
 
     /// Inline quick-reply: type a line and press return (or the send button) to
-    /// deliver it straight to this session's prompt.
+    /// deliver it straight to this session's prompt. Auto-focuses when opened,
+    /// grows up to a few lines, and the trailing button flips between send (when
+    /// there's text) and dismiss (when empty). Esc also closes it.
     private var replyRow: some View {
-        HStack(spacing: 6) {
+        let hasText = !replyText.trimmingCharacters(in: .whitespaces).isEmpty
+        return HStack(alignment: .bottom, spacing: 7) {
             Image(systemName: "arrowshape.turn.up.left.fill")
-                .font(.system(size: 9))
-                .foregroundStyle(CardInk.faint)
-            TextField(L.t(.replyPlaceholder), text: $replyText)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(statusColor.opacity(0.85))
+                .padding(.bottom, 2)
+            TextField(L.t(.replyPlaceholder), text: $replyText, axis: .vertical)
                 .textFieldStyle(.plain)
+                .lineLimit(1...4)
                 .font(.system(size: 11, design: .rounded))
                 .foregroundStyle(CardInk.title)
+                .focused($replyFocused)
                 .onSubmit(sendReply)
-            if !replyText.trimmingCharacters(in: .whitespaces).isEmpty {
-                Button(action: sendReply) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 15))
-                        .foregroundStyle(statusColor)
-                }
-                .buttonStyle(.plain)
+            Button(action: hasText ? sendReply : closeReply) {
+                Image(systemName: hasText ? "arrow.up.circle.fill" : "xmark.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(hasText ? statusColor : CardInk.faint)
+                    .contentTransition(.opacity)
             }
+            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 10).padding(.vertical, 5)
-        .background(Capsule().fill(Color.black.opacity(0.05)))
+        .padding(.horizontal, 11).padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .fill(statusColor.opacity(replyFocused ? 0.08 : 0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15, style: .continuous)
+                        .strokeBorder(replyFocused ? statusColor.opacity(0.5) : Color.black.opacity(0.06),
+                                      lineWidth: replyFocused ? 1.2 : 0.75)))
+        .animation(.easeOut(duration: 0.14), value: replyFocused)
+        .onExitCommand(perform: closeReply)   // Esc dismisses
+    }
+
+    private func openReply() {
+        replyOpen = true
+        replyFocused = true
+    }
+
+    private func closeReply() {
+        replyText = ""
+        replyOpen = false
+        replyFocused = false
     }
 
     private func sendReply() {
@@ -179,6 +259,8 @@ struct SessionCard: View {
         guard !t.isEmpty else { return }
         TerminalInput.send(t, to: session)
         replyText = ""
+        replyOpen = false
+        replyFocused = false
     }
 
     // MARK: Content
@@ -210,16 +292,9 @@ struct SessionCard: View {
         session.state == .running ? Color.black.opacity(0.30) : statusColor
     }
 
-    // Darker, readable-on-white variants of the state tints.
-    private var statusColor: Color {
-        switch session.state {
-        case .running: return Color(red: 0.09, green: 0.55, blue: 0.62)
-        case .waiting: return Color(red: 0.82, green: 0.55, blue: 0.05)
-        case .ready:   return Color(red: 0.16, green: 0.60, blue: 0.30)
-        case .failed:  return Color(red: 0.82, green: 0.22, blue: 0.22)
-        case .idle:    return Color(red: 0.45, green: 0.49, blue: 0.57)
-        }
-    }
+    // Darker, readable-on-white variant of the state tint (shared with the pet
+    // status chip so cards + caption use one palette).
+    private var statusColor: Color { session.state.inkTint }
 
     private var helpText: String {
         var s = title
@@ -261,22 +336,48 @@ struct SessionCard: View {
     }
 }
 
-/// Crisp white, very rounded, softly shadowed card — matches the Codex pet
-/// stack. Borderless and pure white normally; needs-attention cards get a warm
-/// colour tint, a thin accent edge, and a colour-tinted glow.
+/// A soft, top-lit "pebble" card that speaks the same visual language as the
+/// pet: a gentle vertical gradient body, a bevelled rim (bright on top, soft
+/// shade below) and a blurred contact shadow — so a card reads as a smooth,
+/// illuminated object, not a flat web sheet. Attention cards warm to the state
+/// colour with a tinted rim and glow.
 struct CardBackground: View {
     var highlighted: Bool = false
     var accent: Color? = nil
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+        let glow = accent ?? .black
         shape
-            .fill(Color.white)
-            .overlay(shape.fill(accent?.opacity(0.07) ?? .clear))      // warm tint on accent
-            .overlay(accent.map { shape.stroke($0.opacity(0.40), lineWidth: 1.1) })
-            .shadow(color: (accent ?? .black).opacity(accent != nil ? 0.26 : 0.15),
-                    radius: highlighted ? 13 : 10, x: 0, y: highlighted ? 6 : 4)
-            .shadow(color: .black.opacity(0.05), radius: 1.5, x: 0, y: 1)
+            // Top-lit body gradient — the pet's "lit from above" sheen language.
+            .fill(LinearGradient(colors: [Color.white, Color(white: 0.955)],
+                                 startPoint: .top, endPoint: .bottom))
+            // Warm wash on attention cards.
+            .overlay(accent.map { shape.fill($0.opacity(0.07)) })
+            // Bevelled rim: a bright highlight along the top easing to a soft
+            // shade below — mirrors the pet's sheen-on-top, shade-underneath.
+            .overlay(
+                shape.strokeBorder(
+                    LinearGradient(
+                        colors: accent.map { [$0.opacity(0.46), $0.opacity(0.20)] }
+                            ?? [Color.white.opacity(0.9), Color.black.opacity(0.08)],
+                        startPoint: .top, endPoint: .bottom),
+                    lineWidth: 1))
+            // Soft, blurred drop shadow echoing the pet's contact shadow.
+            .shadow(color: glow.opacity(accent != nil ? 0.22 : 0.12),
+                    radius: highlighted ? 16 : 12, x: 0, y: highlighted ? 7 : 5)
+            .shadow(color: .black.opacity(0.06), radius: 2.5, x: 0, y: 1)
+    }
+}
+
+/// Press feedback for tappable card surfaces — a gentle dip + dim, so a click
+/// feels physical (matching the soft, springy pet) instead of dead-flat.
+struct CardPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.975 : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.spring(response: 0.22, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
@@ -369,7 +470,9 @@ struct PulseDot: View {
 /// Transparent, draggable panel that hosts the card stack directly above the
 /// pet. Auto-sizes to its content and bottom-anchors so cards grow upward.
 final class SessionsPanel: NSPanel {
-    private var hosting: NSHostingView<SessionsView>!
+    private var hosting: ContentSizingHostingView<SessionsView>!
+    private var lastPetFrame: NSRect = .zero
+    private var refitting = false
 
     init(store: StateStore, onCollapse: @escaping () -> Void) {
         super.init(
@@ -388,15 +491,39 @@ final class SessionsPanel: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
 
         let root = SessionsView(store: store, onCollapse: onCollapse)
-        hosting = NSHostingView(rootView: root)
+        hosting = ContentSizingHostingView(rootView: root)
+        hosting.sizingOptions = [.intrinsicContentSize]
+        // Re-fit whenever a card grows/shrinks (e.g. a reply field opening) so
+        // the panel tracks its content instead of clipping it.
+        hosting.onContentResize = { [weak self] in self?.refit() }
         contentView = hosting
     }
 
     override var canBecomeKey: Bool { true }   // so card taps + menu work
     override var canBecomeMain: Bool { false }
 
-    /// Size to fit content and anchor the bottom just above the pet, centered.
+    /// Horizontal padding baked into the SwiftUI stack (so soft shadows aren't
+    /// clipped). The *visible* card right edge sits this far inside the window.
+    private static let shadowInset: CGFloat = 18
+    /// How far below the pet window's top edge the card stack's bottom tucks,
+    /// as a fraction of the pet's height — so the gap scales with the pet.
+    /// Kept small so the chevron clears the pet's head (which reaches fairly
+    /// high in the window) instead of being occluded by it.
+    private static let headGap: CGFloat = 0.06
+
+    /// Size to fit content and anchor the bottom just above the pet.
     func reposition(above petFrame: NSRect) {
+        lastPetFrame = petFrame
+        refit()
+    }
+
+    /// Re-measure the SwiftUI content and re-anchor above the pet. Guarded
+    /// against re-entrancy (layout can itself invalidate the intrinsic size).
+    private func refit() {
+        guard !refitting, lastPetFrame != .zero else { return }
+        refitting = true
+        defer { refitting = false }
+
         hosting.layoutSubtreeIfNeeded()
         var size = hosting.fittingSize
         if size.width < 10 { size.width = SessionsView.cardWidth + 36 }
@@ -404,11 +531,41 @@ final class SessionsPanel: NSPanel {
 
         guard let screen = NSScreen.main else { setContentSize(size); return }
         let vf = screen.visibleFrame
-        let gap: CGFloat = 0
-        var x = petFrame.midX - size.width / 2
-        var y = petFrame.maxY + gap            // bottom edge above the pet's top
-        x = max(vf.minX + 6, min(x, vf.maxX - size.width - 6))
+
+        // Right-align the stack to the pet so cards fan out to its upper-left.
+        // The visible card's right edge lands at the pet's right-of-centre, and
+        // because the stack only ever grows leftward it stays fully on-screen
+        // when the pet is dragged to the right edge.
+        let anchorRight = lastPetFrame.midX + lastPetFrame.width * 0.18
+        var x = anchorRight - size.width + SessionsPanel.shadowInset
+        // The pet rests in the lower part of its window, with transparent
+        // headroom on top (for the jump). Tuck the stack's bottom down to just
+        // above the pet's head — as a fraction of the pet's height, so the gap
+        // tracks the pet's size instead of being a fixed distance.
+        var y = lastPetFrame.maxY - lastPetFrame.height * SessionsPanel.headGap
+        // Clamp to the screen: pin to the left edge if the pet is hard left,
+        // and never let the visible card spill past the right edge.
+        x = max(vf.minX + 6, min(x, vf.maxX - size.width + SessionsPanel.shadowInset - 6))
         if y + size.height > vf.maxY { y = max(vf.minY + 6, vf.maxY - size.height - 6) }
-        setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: true)
+        let newFrame = NSRect(x: x, y: y, width: size.width, height: size.height)
+        if newFrame != frame { setFrame(newFrame, display: true, animate: false) }
+    }
+}
+
+/// An `NSHostingView` that reports SwiftUI content-size changes so the hosting
+/// window can re-fit. Coalesced to one callback per run-loop turn.
+final class ContentSizingHostingView<V: View>: NSHostingView<V> {
+    var onContentResize: (() -> Void)?
+    private var scheduled = false
+
+    override func invalidateIntrinsicContentSize() {
+        super.invalidateIntrinsicContentSize()
+        guard !scheduled else { return }
+        scheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.scheduled = false
+            self.onContentResize?()
+        }
     }
 }

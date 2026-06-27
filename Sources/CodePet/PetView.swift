@@ -1,6 +1,7 @@
 import SwiftUI
 
 extension PetActivity {
+    /// Bright tint for accents drawn *on the pet* and on dark surfaces.
     var tint: Color {
         switch self {
         case .idle:    return Color(red: 0.62, green: 0.66, blue: 0.74)
@@ -8,6 +9,18 @@ extension PetActivity {
         case .waiting: return Color(red: 0.98, green: 0.80, blue: 0.27)
         case .ready:   return Color(red: 0.35, green: 0.82, blue: 0.48)
         case .failed:  return Color(red: 0.92, green: 0.36, blue: 0.36)
+        }
+    }
+
+    /// Darker, readable-on-white variant — used by the white cards and the
+    /// pet's status chip so they share one palette.
+    var inkTint: Color {
+        switch self {
+        case .running: return Color(red: 0.09, green: 0.55, blue: 0.62)
+        case .waiting: return Color(red: 0.82, green: 0.55, blue: 0.05)
+        case .ready:   return Color(red: 0.16, green: 0.60, blue: 0.30)
+        case .failed:  return Color(red: 0.82, green: 0.22, blue: 0.22)
+        case .idle:    return Color(red: 0.45, green: 0.49, blue: 0.57)
         }
     }
 }
@@ -33,11 +46,8 @@ struct PetView: View {
         let activity = store.displayActivity
         let entry = PetCatalog.resolve(store.config.pet, in: store.catalog)
         let scale = store.config.scale
-        let count = store.liveSessions.count
-        let attention = store.attentionCount
 
-        // Inset shared by the count chip (top-right) and the resize handle
-        // (bottom-right) so they line up on the same window edge.
+        // Inset for the resize handle (bottom-right).
         let edgeInset = 8 * scale
 
         // Drop to a calm redraw cadence when idle and not being interacted with,
@@ -47,6 +57,13 @@ struct PetView: View {
 
         ZStack {
             VStack(spacing: 4 * scale) {
+                // Status sits ABOVE the pet, and only while the card stack is
+                // closed — when cards are open they already show each session's
+                // status, so a second status line here would be redundant.
+                if !store.panelOpen {
+                    caption(activity: activity, scale: scale)
+                        .transition(.opacity)
+                }
                 // Only the creature breathes on hover — scaling the whole stack
                 // used to nudge the corner chip/handle out of frame and clip them.
                 Group {
@@ -66,19 +83,13 @@ struct PetView: View {
                     pop = 1.16
                     withAnimation(.interpolatingSpring(stiffness: 260, damping: 12)) { pop = 1.0 }
                 }
-
-                caption(activity: activity, scale: scale)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Bottom-anchor so the pet keeps its resting position whether or not
+            // the caption is present above it.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .animation(.easeOut(duration: 0.18), value: store.panelOpen)
 
-            // Session-count chip — top-right, hidden while the card stack is open.
-            if count > 1 && !store.panelOpen {
-                countChip(count: count, attention: attention)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .padding(.top, edgeInset).padding(.trailing, edgeInset)
-            }
-
-            // Resize handle — bottom-right, aligned to the same edge as the chip.
+            // Resize handle — bottom-right.
             if store.hovering {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                     .font(.system(size: 8 * scale, weight: .bold))
@@ -97,11 +108,34 @@ struct PetView: View {
 
     /// The state caption: a dark translucent pill so text stays legible on any
     /// wallpaper (label + the winning detail, or an aggregate summary on hover).
+    /// Sits above the pet and only when the card stack is closed.
     private func caption(activity: PetActivity, scale: Double) -> some View {
-        VStack(spacing: 1) {
-            Text(activity.label)
-                .font(.system(size: 11 * scale, weight: .semibold, design: .rounded))
-                .foregroundStyle(activity.tint)
+        let count = store.liveSessions.count
+        let attention = store.attentionCount
+        return VStack(spacing: 2.5 * scale) {
+            // Status label, with the live-session count folded in as a small
+            // badge (so the count no longer crowds in a separate corner chip).
+            HStack(spacing: 5 * scale) {
+                Text(activity.label)
+                    .font(.system(size: 11 * scale, weight: .semibold, design: .rounded))
+                    .foregroundStyle(activity.tint)
+                if count > 1 {
+                    HStack(spacing: 2 * scale) {
+                        Image(systemName: "rectangle.stack.fill")
+                            .font(.system(size: 7 * scale, weight: .bold))
+                        Text("\(count)")
+                            .font(.system(size: 9 * scale, weight: .heavy, design: .rounded))
+                        if attention > 0 {
+                            Circle()
+                                .fill(Color(red: 0.98, green: 0.80, blue: 0.27))
+                                .frame(width: 4 * scale, height: 4 * scale)
+                        }
+                    }
+                    .foregroundStyle(.white.opacity(0.92))
+                    .padding(.horizontal, 4 * scale).padding(.vertical, 1 * scale)
+                    .background(Capsule().fill(.white.opacity(0.16)))
+                }
+            }
             Group {
                 if store.hovering {
                     Text(store.summaryLine)
@@ -115,31 +149,14 @@ struct PetView: View {
             .truncationMode(.middle)
             .frame(maxWidth: 150 * scale)
         }
-        .padding(.horizontal, 9 * scale)
-        .padding(.vertical, 3.5 * scale)
+        .padding(.horizontal, 10 * scale)
+        .padding(.vertical, 4 * scale)
         .background(
-            Capsule().fill(.black.opacity(0.42))
-                .overlay(Capsule().stroke(.white.opacity(0.08), lineWidth: 0.5))
+            Capsule().fill(.black.opacity(0.46))
+                .overlay(Capsule().stroke(.white.opacity(0.10), lineWidth: 0.5))
+                // Soft lift so the pill floats like the cards do, not flat on the wall.
+                .shadow(color: .black.opacity(0.28), radius: 5 * scale, x: 0, y: 2.5 * scale)
         )
-    }
-
-    /// A small pill showing how many sessions are live, tinted if any need me.
-    private func countChip(count: Int, attention: Int) -> some View {
-        HStack(spacing: 2) {
-            Image(systemName: "rectangle.stack.fill")
-                .font(.system(size: 7, weight: .bold))
-            Text("\(count)")
-                .font(.system(size: 9, weight: .heavy, design: .rounded))
-            if attention > 0 {
-                Circle()
-                    .fill(Color(red: 0.98, green: 0.80, blue: 0.27))
-                    .frame(width: 5, height: 5)
-            }
-        }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 5)
-        .padding(.vertical, 2)
-        .background(Capsule().fill(.black.opacity(0.55)))
     }
 }
 
