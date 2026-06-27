@@ -173,8 +173,17 @@ Requires macOS 13+ and the Xcode command-line toolchain (`swiftc`).
 ## Uninstall
 
 ```bash
-bash uninstall.sh    # removes hooks + skill, stops the app; keeps your pets
+bash uninstall.sh    # source install: removes hooks + skills, stops the app
 ```
+
+**Downloaded (.pkg):** drag CodePet out of `/Applications` to the Trash. To also
+remove the hooks/skills, run this before deleting it:
+
+```bash
+node /Applications/CodePet.app/Contents/Resources/tools/install-hooks.js uninstall
+```
+
+Either way your installed pets (`~/.codepet`, `~/.petdex`) are kept.
 
 ## Layout
 

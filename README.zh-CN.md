@@ -126,7 +126,13 @@ bash install.sh
 bash uninstall.sh    # 移除 hooks + 技能、停止 App;保留你的宠物
 ```
 
-下载版则双击 **`Uninstall CodePet.command`**。
+**下载版(.pkg)**:把 `/Applications` 里的 CodePet 拖进废纸篓即可。想同时清掉 hooks/技能,删除前先运行:
+
+```bash
+node /Applications/CodePet.app/Contents/Resources/tools/install-hooks.js uninstall
+```
+
+你已安装的宠物(`~/.codepet`、`~/.petdex`)始终保留。
 
 ## 目录结构
 
