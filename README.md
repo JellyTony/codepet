@@ -12,8 +12,21 @@ doing, at a glance, while you work in other apps.
 
 > 🇨🇳 [中文说明文档](README.zh-CN.md)
 
+<p align="center">
+  <img src="docs/hero.png" width="440" alt="CodePet — a session card stack floating above the corner pet">
+</p>
+
 > Same idea, same overlay, same card-stack layout as Codex pets — built for
 > Claude Code, and **multi-session aware**.
+
+## Highlights
+
+- 🐾 **Live state at a glance** — the corner creature mirrors *working / needs-you / ready / failed / idle*.
+- 🗂️ **Multi-session aware** — one task card per Claude Code session, with the real task title, the live action, and progress.
+- 💬 **Quick-reply from a card** — type straight back into a session's terminal without leaving what you're doing.
+- 🎨 **Petdex gallery** — install animated pets in two clicks, no terminal, no config.
+- 🌏 **Localized** — English / 简体中文 / 繁體中文 / 日本語, switches live.
+- 📦 **Native & dependency-free** — one `swiftc` build, a ~1 MB app, no Electron, no packages.
 
 ## What it does
 
@@ -28,6 +41,10 @@ prompt — exactly like the Codex overlay:
 | **ready for review** | sits, smiles, holds a code package, sparkles | `Stop` |
 | **something failed** | shakes, frowns, sweat-drop, a `!` bubble | tool errors / error notifications |
 | **idle** | breathes, blinks, drifts `z z z`, waves hello | `SessionStart` |
+
+<p align="center">
+  <img src="docs/states.png" width="760" alt="the pet's five states: working, needs you, ready, failed, idle">
+</p>
 
 Under the hood every renderer speaks in named **`PetAction`s** — the abstraction
 that lets CodePet play any pet (built-in, Codex, or Petdex) with no per-pet code.
