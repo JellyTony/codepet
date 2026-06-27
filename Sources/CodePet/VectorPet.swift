@@ -37,7 +37,11 @@ enum VectorPet {
         let shadowRect = CGRect(x: cx - shadowW / 2,
                                 y: size.height * 0.60 + bodyH * 0.52,
                                 width: shadowW, height: bodyH * 0.16)
-        ctx.fill(Ellipse().path(in: shadowRect), with: .color(.black.opacity(0.22)))
+        // Soft, blurred contact shadow (no hard edge).
+        ctx.drawLayer { layer in
+            layer.addFilter(.blur(radius: bodyH * 0.045))
+            layer.fill(Ellipse().path(in: shadowRect), with: .color(.black.opacity(0.17)))
+        }
 
         let w = bodyW / squash
         let h = bodyH * squash
@@ -61,6 +65,10 @@ enum VectorPet {
             let sheen = CGRect(x: body.minX + body.width * 0.14, y: body.minY + body.height * 0.05,
                                width: body.width * 0.72, height: body.height * 0.40)
             layer.fill(Ellipse().path(in: sheen), with: .color(.white.opacity(0.20)))
+            // Faint inner shade along the bottom for roundness.
+            let shade = CGRect(x: body.minX, y: body.maxY - body.height * 0.30,
+                               width: body.width, height: body.height * 0.44)
+            layer.fill(Ellipse().path(in: shade), with: .color(.black.opacity(0.06)))
         }
         // Softer, less harsh outline than a flat black line.
         ctx.stroke(bodyPath, with: .color(.black.opacity(0.20)), lineWidth: 1.6)
@@ -161,9 +169,17 @@ enum VectorPet {
             if blinking || sad {
                 var line = Path()
                 let yy = sad ? eyeY - eyeR * 0.3 : eyeY
-                line.move(to: CGPoint(x: ex - eyeR, y: sad ? yy + eyeR * 0.6 : yy))
-                line.addLine(to: CGPoint(x: ex + eyeR, y: yy))
-                ctx.stroke(line, with: .color(.black.opacity(0.85)),
+                if sad {
+                    // Angled-down "distressed" eye.
+                    line.move(to: CGPoint(x: ex - eyeR, y: yy + eyeR * 0.6))
+                    line.addLine(to: CGPoint(x: ex + eyeR, y: yy))
+                } else {
+                    // Gentle closed-eye curve (‿) — a soft, cute blink.
+                    line.move(to: CGPoint(x: ex - eyeR, y: yy))
+                    line.addQuadCurve(to: CGPoint(x: ex + eyeR, y: yy),
+                                      control: CGPoint(x: ex, y: yy + eyeR * 0.55))
+                }
+                ctx.stroke(line, with: .color(Color(white: 0.12)),
                            style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 continue
             }
