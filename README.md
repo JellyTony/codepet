@@ -109,9 +109,10 @@ Drop a `pet.json` + spritesheet (`.webp` or `.png`; atlas `1536×1872`, 8 column
 ```
 
 The same pet installed to both `~/.petdex` and `~/.codex` is de-duped to one menu
-entry. Built-in **forms** (Blob, Stacky, Byte, Glitch) need no assets at all —
-they're drawn and animated procedurally, so every state is fully animated out of
-the box.
+entry. Built-in **forms** need no assets at all — Blob, Stacky, Byte, and Glitch,
+plus programmer favourites **Ducky** 🦆 (rubber-duck debugging), **Rex** 🦖 (the
+offline dino), and **Java** ☕ — all drawn and animated procedurally, so every
+state is fully animated out of the box.
 
 <p align="center">
   <img src="docs/forms.png" width="640" alt="the four built-in forms: Blob, Stacky, Byte, Glitch">

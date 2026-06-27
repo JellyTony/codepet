@@ -7,9 +7,13 @@ enum PetSpecies: String, CaseIterable {
     case cat
     case robot
     case ghost
+    case duck     // rubber-duck debugging 🦆
+    case dino     // the offline dino 🦖
+    case coffee   // fuel ☕
 
     static let displayName: [PetSpecies: String] = [
-        .blob: "Blob", .cat: "Stacky", .robot: "Byte", .ghost: "Glitch"
+        .blob: "Blob", .cat: "Stacky", .robot: "Byte", .ghost: "Glitch",
+        .duck: "Ducky", .dino: "Rex", .coffee: "Java"
     ]
 
     var title: String { PetSpecies.displayName[self] ?? rawValue.capitalized }
@@ -17,10 +21,13 @@ enum PetSpecies: String, CaseIterable {
     /// Constant identity colour for the built-in form.
     var identityColor: Color {
         switch self {
-        case .blob:  return Color(red: 0.27, green: 0.74, blue: 0.78)
-        case .cat:   return Color(red: 0.95, green: 0.62, blue: 0.30)
-        case .robot: return Color(red: 0.55, green: 0.60, blue: 0.72)
-        case .ghost: return Color(red: 0.64, green: 0.52, blue: 0.92)
+        case .blob:   return Color(red: 0.27, green: 0.74, blue: 0.78)
+        case .cat:    return Color(red: 0.95, green: 0.62, blue: 0.30)
+        case .robot:  return Color(red: 0.55, green: 0.60, blue: 0.72)
+        case .ghost:  return Color(red: 0.64, green: 0.52, blue: 0.92)
+        case .duck:   return Color(red: 0.97, green: 0.80, blue: 0.27)
+        case .dino:   return Color(red: 0.42, green: 0.74, blue: 0.46)
+        case .coffee: return Color(red: 0.55, green: 0.40, blue: 0.31)
         }
     }
 
@@ -39,6 +46,12 @@ enum PetSpecies: String, CaseIterable {
             return Path(roundedRect: rect, cornerRadius: rect.height * 0.34)
         case .robot:
             return Path(roundedRect: rect, cornerRadius: rect.height * 0.18)
+        case .duck:
+            return Path(roundedRect: rect, cornerRadius: rect.height * 0.46)
+        case .dino:
+            return Path(roundedRect: rect, cornerRadius: rect.height * 0.32)
+        case .coffee:
+            return Path(roundedRect: rect, cornerRadius: rect.width * 0.14)
         case .ghost:
             // Rounded top, wavy bottom.
             var p = Path()
@@ -126,6 +139,52 @@ enum PetSpecies: String, CaseIterable {
                 ctx.fill(Circle().path(in: CGRect(x: bx - r * 0.5, y: body.midY - r * 0.55,
                                                   width: r, height: r)),
                          with: .color(.white.opacity(0.45)))
+            }
+
+        case .duck:
+            // A jaunty head tuft + a folded wing. (Beak is drawn as the mouth.)
+            var tuft = Path()
+            let tx = body.midX + body.width * 0.02, ty = body.minY + body.height * 0.02
+            tuft.move(to: CGPoint(x: tx, y: ty))
+            tuft.addQuadCurve(to: CGPoint(x: tx - body.width * 0.05, y: ty - body.height * 0.20),
+                              control: CGPoint(x: tx + body.width * 0.13, y: ty - body.height * 0.10))
+            ctx.stroke(tuft, with: .color(tint), style: StrokeStyle(lineWidth: 5, lineCap: .round))
+            var wing = Path()
+            wing.addArc(center: CGPoint(x: body.midX + body.width * 0.20, y: body.midY + body.height * 0.12),
+                        radius: body.width * 0.18, startAngle: .degrees(-50), endAngle: .degrees(55), clockwise: false)
+            ctx.stroke(wing, with: .color(.black.opacity(0.10)), lineWidth: 2)
+
+        case .dino:
+            // Stegosaurus-style back plates across the top.
+            for k in 0..<3 {
+                let fx = body.midX + CGFloat(Double(k) - 1) * body.width * 0.20
+                let baseY = body.minY + body.height * 0.05
+                let sz = body.width * 0.075
+                var sp = Path()
+                sp.move(to: CGPoint(x: fx - sz, y: baseY))
+                sp.addLine(to: CGPoint(x: fx, y: baseY - body.height * 0.17))
+                sp.addLine(to: CGPoint(x: fx + sz, y: baseY))
+                sp.closeSubpath()
+                ctx.fill(sp, with: .color(tint))
+                ctx.stroke(sp, with: .color(.black.opacity(0.12)), lineWidth: 1.2)
+            }
+
+        case .coffee:
+            // Mug handle on the right + two wisps of rising steam.
+            var handle = Path()
+            handle.addArc(center: CGPoint(x: body.maxX + body.width * 0.02, y: body.midY + body.height * 0.06),
+                          radius: body.width * 0.17, startAngle: .degrees(-72), endAngle: .degrees(72), clockwise: false)
+            ctx.stroke(handle, with: .color(tint), style: StrokeStyle(lineWidth: 7, lineCap: .round))
+            for sx in [-1.0, 1.0] {
+                let x0 = body.midX + CGFloat(sx) * body.width * 0.13 + CGFloat(sin(t * 2 + sx)) * body.width * 0.02
+                let y0 = body.minY - body.height * 0.03
+                var steam = Path()
+                steam.move(to: CGPoint(x: x0, y: y0))
+                steam.addCurve(to: CGPoint(x: x0, y: y0 - body.height * 0.24),
+                               control1: CGPoint(x: x0 + body.width * 0.09, y: y0 - body.height * 0.07),
+                               control2: CGPoint(x: x0 - body.width * 0.09, y: y0 - body.height * 0.16))
+                ctx.stroke(steam, with: .color(.white.opacity(0.55)),
+                           style: StrokeStyle(lineWidth: 3, lineCap: .round))
             }
         }
     }

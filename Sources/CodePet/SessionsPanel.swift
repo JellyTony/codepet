@@ -95,6 +95,7 @@ struct SessionCard: View {
         .background(CardBackground(highlighted: hovering,
                                    accent: session.state.needsAttention ? statusColor : nil))
         .opacity(session.isLive(now: now) ? 1.0 : 0.66)
+        .offset(y: hovering ? -1.5 : 0)   // gentle lift on hover (with the shadow)
         .animation(.easeOut(duration: 0.16), value: hovering)
         .help(helpText)
         .onHover { h in

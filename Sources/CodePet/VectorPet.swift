@@ -93,7 +93,7 @@ enum VectorPet {
 
         let blinking = t.truncatingRemainder(dividingBy: 3.4) > 3.2
         drawEyes(ctx: &ctx, body: body, action: motion.action, blinking: blinking, t: t, gaze: gaze)
-        drawMouth(ctx: &ctx, body: body, action: motion.action)
+        drawMouth(ctx: &ctx, body: body, action: motion.action, species: species)
 
         // Rosy cheeks in the cheerful/neutral states (not when distressed).
         switch motion.action {
@@ -110,15 +110,18 @@ enum VectorPet {
     // MARK: - Parts
 
     private static func drawFeet(ctx: inout GraphicsContext, body: CGRect, t: Double, tint: Color) {
-        let phase = sin(t * 12.0)
+        let cycle = t * 6.0
         for (i, sx) in [-1.0, 1.0].enumerated() {
-            let swing = (i == 0 ? phase : -phase) * body.height * 0.08
-            let fx = body.midX + CGFloat(sx) * body.width * 0.22
-            let fy = body.maxY + body.height * 0.02 + swing
-            let r = body.width * 0.09
-            ctx.fill(Ellipse().path(in: CGRect(x: fx - r, y: fy - r * 0.6,
-                                               width: r * 2, height: r * 1.2)),
-                     with: .color(tint.opacity(0.85)))
+            // Anti-phase: as one foot lifts and steps forward, the other plants.
+            let phase = cycle + Double(i) * .pi
+            let lift = max(0, sin(phase)) * body.height * 0.11
+            let fwd = cos(phase) * body.width * 0.055
+            let fx = body.midX + CGFloat(sx) * body.width * 0.20 + CGFloat(fwd)
+            let fy = body.maxY + body.height * 0.02 - CGFloat(lift)
+            let r = body.width * 0.095
+            ctx.fill(Ellipse().path(in: CGRect(x: fx - r, y: fy - r * 0.55,
+                                               width: r * 2, height: r * 1.1)),
+                     with: .color(tint.opacity(0.9)))
         }
     }
 
@@ -213,7 +216,21 @@ enum VectorPet {
         }
     }
 
-    private static func drawMouth(ctx: inout GraphicsContext, body: CGRect, action: PetAction) {
+    private static func drawMouth(ctx: inout GraphicsContext, body: CGRect, action: PetAction,
+                                  species: PetSpecies) {
+        // The duck wears a beak where its mouth would be.
+        if species == .duck {
+            let bw = body.width * 0.34, bh = body.height * 0.11
+            let beak = CGRect(x: body.midX - bw / 2, y: body.midY + body.height * 0.05,
+                              width: bw, height: bh)
+            ctx.fill(Capsule().path(in: beak), with: .color(Color(red: 0.96, green: 0.58, blue: 0.12)))
+            var split = Path()
+            split.move(to: CGPoint(x: beak.minX + 3, y: beak.midY))
+            split.addLine(to: CGPoint(x: beak.maxX - 3, y: beak.midY))
+            ctx.stroke(split, with: .color(.black.opacity(0.18)),
+                       style: StrokeStyle(lineWidth: 1, lineCap: .round))
+            return
+        }
         let mY = body.midY + body.height * 0.18
         let mW = body.width * 0.22
         var p = Path()

@@ -17,6 +17,7 @@ extension PetActivity {
 /// and surfaces an at-a-glance summary on hover.
 struct PetView: View {
     @ObservedObject var store: StateStore
+    @State private var pop: CGFloat = 1.0   // transient bounce on state change
 
     /// Base overlay size at scale 1.0 (the window grows by `scale`). The height
     /// includes transparent headroom above the pet so the jump never clips — the
@@ -59,8 +60,12 @@ struct PetView: View {
                     }
                 }
                 .frame(width: PetView.stageW * scale, height: PetView.stageH * scale)
-                .scaleEffect(store.hovering ? 1.06 : 1.0)
+                .scaleEffect((store.hovering ? 1.06 : 1.0) * pop, anchor: .bottom)
                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: store.hovering)
+                .onChange(of: activity) { _ in
+                    pop = 1.16
+                    withAnimation(.interpolatingSpring(stiffness: 260, damping: 12)) { pop = 1.0 }
+                }
 
                 caption(activity: activity, scale: scale)
             }
