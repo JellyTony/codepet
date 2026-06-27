@@ -185,10 +185,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func rebuildMenu() {
         guard let menu = statusItem.menu else { return }
         menu.removeAllItems()
-        menu.addItem(header("CodePet"))
+        let brand = header("CodePet")
+        if let icon = NSApp.applicationIconImage?.copy() as? NSImage {
+            icon.size = NSSize(width: 16, height: 16)
+            brand.image = icon
+        }
+        menu.addItem(brand)
 
         let show = NSMenuItem(title: L.t(.showSessions), action: #selector(togglePanel), keyEquivalent: "s")
         show.target = self
+        show.image = sym("rectangle.stack")
         menu.addItem(show)
         menu.addItem(.separator())
 
@@ -210,6 +216,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // ── Install a pet straight from the Petdex gallery, no terminal ──
         petMenu.addItem(.separator())
         let petdexParent = NSMenuItem(title: L.t(.installFromPetdex), action: nil, keyEquivalent: "")
+        petdexParent.image = sym("square.and.arrow.down")
         let petdexSub = NSMenu()
         if petdexFeatured.isEmpty {
             let loading = NSMenuItem(title: L.t(.petdexLoading), action: nil, keyEquivalent: "")
@@ -231,9 +238,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let byName = NSMenuItem(title: L.t(.petdexInstallByName),
                                 action: #selector(installPetdexByName), keyEquivalent: "")
         byName.target = self
+        byName.image = sym("keyboard")
         petdexSub.addItem(byName)
         let browse = NSMenuItem(title: L.t(.petdexBrowseWeb), action: #selector(browsePetdex), keyEquivalent: "")
         browse.target = self
+        browse.image = sym("safari")
         petdexSub.addItem(browse)
         petMenu.setSubmenu(petdexSub, for: petdexParent)
         petMenu.addItem(petdexParent)
@@ -241,8 +250,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         petMenu.addItem(.separator())
         let refresh = NSMenuItem(title: L.t(.refreshPets), action: #selector(refreshPets), keyEquivalent: "r")
         refresh.target = self
+        refresh.image = sym("arrow.clockwise")
         petMenu.addItem(refresh)
         let petParent = NSMenuItem(title: L.t(.pet), action: nil, keyEquivalent: "")
+        petParent.image = sym("pawprint")
         menu.setSubmenu(petMenu, for: petParent)
         menu.addItem(petParent)
 
@@ -259,8 +270,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         cornerMenu.addItem(.separator())
         let snap = NSMenuItem(title: L.t(.snapToCorner), action: #selector(snapToCorner), keyEquivalent: "")
         snap.target = self
+        snap.image = sym("arrow.down.right.and.arrow.up.left")
         cornerMenu.addItem(snap)
         let cornerParent = NSMenuItem(title: L.t(.position), action: nil, keyEquivalent: "")
+        cornerParent.image = sym("macwindow")
         menu.setSubmenu(cornerMenu, for: cornerParent)
         menu.addItem(cornerParent)
 
@@ -274,6 +287,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             langMenu.addItem(item)
         }
         let langParent = NSMenuItem(title: L.t(.language), action: nil, keyEquivalent: "")
+        langParent.image = sym("globe")
         menu.setSubmenu(langMenu, for: langParent)
         menu.addItem(langParent)
 
@@ -290,15 +304,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         previewMenu.addItem(.separator())
         let clearPreview = NSMenuItem(title: L.t(.clearPreview), action: #selector(clearPreview), keyEquivalent: "")
         clearPreview.target = self
+        clearPreview.image = sym("xmark.circle")
         previewMenu.addItem(clearPreview)
         let previewParent = NSMenuItem(title: L.t(.previewState), action: nil, keyEquivalent: "")
+        previewParent.image = sym("eye")
         menu.setSubmenu(previewMenu, for: previewParent)
         menu.addItem(previewParent)
 
         menu.addItem(.separator())
         let quit = NSMenuItem(title: L.t(.quit), action: #selector(quit), keyEquivalent: "q")
         quit.target = self
+        quit.image = sym("power")
         menu.addItem(quit)
+    }
+
+    /// A small template SF Symbol for menu-item styling.
+    private func sym(_ name: String) -> NSImage? {
+        let cfg = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
+        let img = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
+            .withSymbolConfiguration(cfg)
+        img?.isTemplate = true
+        return img
     }
 
     private func header(_ text: String) -> NSMenuItem {

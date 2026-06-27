@@ -19,16 +19,13 @@ func draw(size s: CGFloat) -> NSImage {
 
     ctx.saveGState()
     ctx.addPath(tilePath); ctx.clip()
-    let cs = CGColorSpaceDeviceRGB()
+    let cs = CGColorSpaceCreateDeviceRGB()
     let grad = CGGradient(colorsSpace: cs, colors: [
         CGColor(red: 0.43, green: 0.84, blue: 0.86, alpha: 1),   // top
         CGColor(red: 0.16, green: 0.62, blue: 0.69, alpha: 1),   // bottom
     ] as CFArray, locations: [0, 1])!
     ctx.drawLinearGradient(grad, start: CGPoint(x: tile.midX, y: tile.maxY),
                            end: CGPoint(x: tile.midX, y: tile.minY), options: [])
-    // top sheen
-    ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.14))
-    ctx.fill(CGRect(x: tile.minX, y: tile.midY, width: tile.width, height: tile.height / 2))
     ctx.restoreGState()
 
     func ellipse(_ r: CGRect, _ c: CGColor) { ctx.setFillColor(c); ctx.fillEllipse(in: r) }
@@ -82,7 +79,7 @@ func draw(size s: CGFloat) -> NSImage {
     return img
 }
 
-func png(_ img: NSImage, _ size: CGFloat) -> Data {
+func png(_ size: CGFloat) -> Data {
     let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(size), pixelsHigh: Int(size),
                               bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
                               colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
@@ -102,8 +99,8 @@ let specs: [(Int, Int)] = [(16,1),(16,2),(32,1),(32,2),(128,1),(128,2),(256,1),(
 for (base, scale) in specs {
     let px = base * scale
     let name = scale == 1 ? "icon_\(base)x\(base).png" : "icon_\(base)x\(base)@2x.png"
-    try! png(NSImage(), CGFloat(px)).write(to: URL(fileURLWithPath: (iconset as NSString).appendingPathComponent(name)))
+    try! png(CGFloat(px)).write(to: URL(fileURLWithPath: (iconset as NSString).appendingPathComponent(name)))
 }
 // also a standalone 1024 preview
-try! png(NSImage(), 1024).write(to: URL(fileURLWithPath: (root as NSString).appendingPathComponent("build/icon-preview.png")))
+try! png(1024).write(to: URL(fileURLWithPath: (root as NSString).appendingPathComponent("build/icon-preview.png")))
 print("wrote iconset to \(iconset)")
