@@ -55,7 +55,15 @@ enum VectorPet {
             startPoint: CGPoint(x: body.midX, y: body.minY),
             endPoint: CGPoint(x: body.midX, y: body.maxY))
         ctx.fill(bodyPath, with: grad)
-        ctx.stroke(bodyPath, with: .color(.black.opacity(0.28)), lineWidth: 2)
+        // Glossy top sheen, clipped to the body for a soft 3-D feel.
+        ctx.drawLayer { layer in
+            layer.clip(to: bodyPath)
+            let sheen = CGRect(x: body.minX + body.width * 0.14, y: body.minY + body.height * 0.05,
+                               width: body.width * 0.72, height: body.height * 0.40)
+            layer.fill(Ellipse().path(in: sheen), with: .color(.white.opacity(0.20)))
+        }
+        // Softer, less harsh outline than a flat black line.
+        ctx.stroke(bodyPath, with: .color(.black.opacity(0.20)), lineWidth: 1.6)
 
         species.drawFeatures(ctx: &ctx, body: body, t: t, tint: tint)
 
@@ -72,8 +80,10 @@ enum VectorPet {
         drawEyes(ctx: &ctx, body: body, action: motion.action, blinking: blinking, t: t, gaze: gaze)
         drawMouth(ctx: &ctx, body: body, action: motion.action)
 
-        if motion.action == .review || motion.action == .wave {
-            drawCheeks(ctx: &ctx, body: body)
+        // Rosy cheeks in the cheerful/neutral states (not when distressed).
+        switch motion.action {
+        case .fail, .wait: break
+        default: drawCheeks(ctx: &ctx, body: body)
         }
         if motion.action == .fail {
             drawSweat(ctx: &ctx, body: body, t: t)
@@ -128,7 +138,7 @@ enum VectorPet {
                                  blinking: Bool, t: Double, gaze: CGSize = .zero) {
         let eyeY = body.midY - body.height * 0.08
         let dx = body.width * 0.20
-        let eyeR = body.width * 0.085
+        let eyeR = body.width * 0.094
         // When the cursor is near, the pupils track it; otherwise idle drift.
         let tracking = abs(gaze.width) > 0.001 || abs(gaze.height) > 0.001
         let look: CGFloat
@@ -159,13 +169,19 @@ enum VectorPet {
             }
             let white = CGRect(x: ex - eyeR, y: eyeY - eyeR, width: eyeR * 2, height: eyeR * 2)
             ctx.fill(Ellipse().path(in: white), with: .color(.white))
-            let pr = eyeR * (action == .wait ? 0.62 : 0.55)
+            ctx.stroke(Ellipse().path(in: white), with: .color(.black.opacity(0.06)), lineWidth: 0.75)
+            let pr = eyeR * (action == .wait ? 0.72 : 0.64)
             let pupil = CGRect(x: ex - pr + look, y: eyeY - pr + lookY, width: pr * 2, height: pr * 2)
-            ctx.fill(Ellipse().path(in: pupil), with: .color(.black.opacity(0.88)))
-            let gr = pr * 0.35
-            ctx.fill(Ellipse().path(in: CGRect(x: ex - pr + look + gr * 0.4, y: eyeY - pr * 0.4 + lookY,
+            ctx.fill(Ellipse().path(in: pupil), with: .color(Color(white: 0.12)))
+            // Two catch-lights make the eyes read as glossy.
+            let gr = pr * 0.38
+            ctx.fill(Ellipse().path(in: CGRect(x: ex - pr + look + gr * 0.5, y: eyeY - pr * 0.55 + lookY,
                                                width: gr, height: gr)),
-                     with: .color(.white.opacity(0.9)))
+                     with: .color(.white.opacity(0.95)))
+            let gr2 = pr * 0.20
+            ctx.fill(Ellipse().path(in: CGRect(x: ex + look - pr * 0.25, y: eyeY + pr * 0.30 + lookY,
+                                               width: gr2, height: gr2)),
+                     with: .color(.white.opacity(0.55)))
         }
     }
 
@@ -186,8 +202,10 @@ enum VectorPet {
             p.addQuadCurve(to: CGPoint(x: body.midX + mW, y: mY + 3),
                            control: CGPoint(x: body.midX, y: mY - mW * 0.6))
         case .walk, .walkRight, .walkLeft:
-            p.move(to: CGPoint(x: body.midX - mW * 0.7, y: mY))
-            p.addLine(to: CGPoint(x: body.midX + mW * 0.7, y: mY))
+            // A small content smile instead of a blank line.
+            p.move(to: CGPoint(x: body.midX - mW * 0.55, y: mY - 1))
+            p.addQuadCurve(to: CGPoint(x: body.midX + mW * 0.55, y: mY - 1),
+                           control: CGPoint(x: body.midX, y: mY + mW * 0.5))
         case .idle:
             p.move(to: CGPoint(x: body.midX - mW * 0.6, y: mY))
             p.addQuadCurve(to: CGPoint(x: body.midX + mW * 0.6, y: mY),
