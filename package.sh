@@ -17,8 +17,17 @@ rm -rf "$ROOT/dist"; mkdir -p "$STAGE"
 cp -R "$ROOT/build/CodePet.app" "$STAGE/CodePet.app"
 chmod +x "$SCRIPTS/postinstall"
 
+# Pin the bundle in place. By default pkgbuild marks app bundles as relocatable,
+# so if a copy with the same bundle id already exists anywhere on disk (e.g. a
+# dev build under build/), the installer "updates" that copy instead of writing
+# to /Applications — and the app never shows up in Launchpad. Disable it.
+COMPONENT="$ROOT/dist/component.plist"
+pkgbuild --analyze --root "$STAGE" "$COMPONENT" >/dev/null
+/usr/libexec/PlistBuddy -c "Set :0:BundleIsRelocatable false" "$COMPONENT"
+
 pkgbuild \
   --root "$STAGE" \
+  --component-plist "$COMPONENT" \
   --identifier com.codepet.app \
   --version "$VERSION" \
   --install-location /Applications \
