@@ -57,11 +57,35 @@ enum L {
     /// passes through unchanged.
     static func localizeDetail(_ raw: String) -> String {
         if let s = statusPhrases[resolved]?[raw] { return s }
-        if let r = raw.range(of: ": "),
-           let v = actionVerbs[resolved]?[String(raw[..<r.lowerBound])] {
-            return v + raw[r.lowerBound...]
+        if let r = raw.range(of: ": ") {
+            let verb = String(raw[..<r.lowerBound])
+            if let v = actionVerbs[resolved]?[verb] {
+                let arg = String(raw[r.upperBound...])
+                return "\(v): \(friendlyArg(verb: verb, arg))"
+            }
         }
         return raw
+    }
+
+    /// Turn a raw tool argument into something readable: file ops show just the
+    /// file name, Bash shows just the program being run — instead of the full
+    /// path / command line, which reads as technical noise under the pet.
+    private static func friendlyArg(verb: String, _ arg: String) -> String {
+        let a = arg.trimmingCharacters(in: .whitespaces)
+        switch verb {
+        case "Read", "Edit", "Write", "MultiEdit", "NotebookEdit":
+            return lastPathComponent(a)
+        case "Bash":
+            let program = a.split(separator: " ", maxSplits: 1).first.map(String.init) ?? a
+            return lastPathComponent(program)
+        default:
+            return a
+        }
+    }
+
+    private static func lastPathComponent(_ s: String) -> String {
+        let parts = s.split(separator: "/", omittingEmptySubsequences: true)
+        return parts.last.map(String.init) ?? s
     }
 
     private static let statusPhrases: [AppLanguage: [String: String]] = [

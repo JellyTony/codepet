@@ -62,6 +62,9 @@ struct PetView: View {
                 // status, so a second status line here would be redundant.
                 if !store.panelOpen {
                     caption(activity: activity, scale: scale)
+                        // Nudge down into the pet's transparent jump-headroom so
+                        // the pill sits closer to the head, not floating high above.
+                        .offset(y: PetView.stageH * scale * 0.12)
                         .transition(.opacity)
                 }
                 // Only the creature breathes on hover — scaling the whole stack

@@ -156,7 +156,7 @@ struct SessionCard: View {
     }
 
     private var contentRow: some View {
-        HStack(alignment: .top, spacing: 11) {
+        HStack(alignment: .center, spacing: 11) {
             VStack(alignment: .leading, spacing: 3) {
                 // Project chip + title row.
                 HStack(spacing: 6) {
@@ -201,7 +201,6 @@ struct SessionCard: View {
             Spacer(minLength: 8)
             StatusIndicator(state: session.state, color: indicatorColor)
                 .frame(width: 16, height: 16)
-                .padding(.top, 1)
         }
     }
 
