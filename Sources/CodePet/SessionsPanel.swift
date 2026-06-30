@@ -528,7 +528,12 @@ final class SessionsPanel: NSPanel {
         if size.width < 10 { size.width = SessionsView.cardWidth + 36 }
         if size.height < 10 { size.height = 80 }
 
-        guard let screen = NSScreen.main else { setContentSize(size); return }
+        // Use the screen the pet actually lives on (the one its frame overlaps
+        // most), not NSScreen.main — otherwise on a multi-monitor setup the
+        // clamping below pins the card into the main display's bounds and it
+        // pops up on the wrong screen instead of above the pet.
+        let screen = screenForPet(lastPetFrame)
+        guard let screen else { setContentSize(size); return }
         let vf = screen.visibleFrame
 
         // Right-align the stack to the pet so cards fan out to its upper-left.
@@ -549,6 +554,22 @@ final class SessionsPanel: NSPanel {
         let newFrame = NSRect(x: x, y: y, width: size.width, height: size.height)
         if newFrame != frame { setFrame(newFrame, display: true, animate: false) }
     }
+
+    /// The screen the pet is on: the one its frame overlaps most, falling back
+    /// to the screen containing the pet's centre, then the main screen. Keeps
+    /// the card on the same display as the pet across multi-monitor layouts.
+    private func screenForPet(_ petFrame: NSRect) -> NSScreen? {
+        let best = NSScreen.screens.max { a, b in
+            a.frame.intersection(petFrame).area < b.frame.intersection(petFrame).area
+        }
+        if let best, best.frame.intersects(petFrame) { return best }
+        let center = CGPoint(x: petFrame.midX, y: petFrame.midY)
+        return NSScreen.screens.first { $0.frame.contains(center) } ?? NSScreen.main
+    }
+}
+
+private extension NSRect {
+    var area: CGFloat { isNull ? 0 : width * height }
 }
 
 /// An `NSHostingView` that reports SwiftUI content-size changes so the hosting
